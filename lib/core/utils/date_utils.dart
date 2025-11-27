@@ -26,7 +26,8 @@ class DateUtils {
       }
 
       try {
-        final date = DateTime.parse(trimmed);
+        final normalized = _ensureUtcDesignator(trimmed);
+        final date = DateTime.parse(normalized);
         return date.toLocal();
       } catch (_) {
         return DateTime.now();
@@ -38,6 +39,19 @@ class DateUtils {
     }
 
     return DateTime.now();
+  }
+
+  static String _ensureUtcDesignator(String value) {
+    final hasTimezone = RegExp(r'(Z|z|[+\-]\d{2}:?\d{2})$').hasMatch(value);
+    if (hasTimezone) {
+      return value;
+    }
+
+    if (value.contains('T')) {
+      return '${value}Z';
+    }
+
+    return '${value}T00:00:00Z';
   }
 
   static DateTime _toLocal(DateTime date) {
@@ -125,4 +139,5 @@ class DateUtils {
            localDate.month == yesterday.month &&
            localDate.day == yesterday.day;
   }
+
 }
