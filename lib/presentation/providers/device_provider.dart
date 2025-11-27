@@ -223,6 +223,14 @@ class DeviceProvider extends ChangeNotifier {
     await _loadCurrentPage();
   }
 
+  Device? getDeviceById(String deviceId) {
+    try {
+      return _devices.firstWhere((d) => d.deviceId == deviceId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> refreshSingleDevice(String deviceId) async {
     try {
       final updatedDevice = await _deviceRepository.getDevice(deviceId);

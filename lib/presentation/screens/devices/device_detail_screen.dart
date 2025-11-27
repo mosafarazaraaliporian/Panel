@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../data/models/device.dart';
@@ -30,15 +31,25 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   bool _isRefreshing = false;
   bool _isPinging = false;
   int _refreshKey = 0;
+  Timer? _autoRefreshTimer;
+  static const Duration _autoRefreshInterval = Duration(minutes: 1);
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _currentDevice = widget.device;
+    _startAutoRefresh();
   }
 
-  Future<void> _refreshDevice() async {
+  void _startAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer.periodic(_autoRefreshInterval, (_) {
+      _refreshDevice(showSnackbar: false);
+    });
+  }
+
+  Future<void> _refreshDevice({bool showSnackbar = true}) async {
     if (_isRefreshing) return;
 
     setState(() => _isRefreshing = true);
@@ -52,7 +63,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
           _refreshKey++;
         });
         
-        if (mounted) {
+        if (mounted && showSnackbar) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -80,28 +91,30 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
     } catch (e) {
       if (mounted) {
         setState(() => _isRefreshing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_rounded, color: Colors.white, size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Failed to refresh device: ${e.toString()}',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        if (showSnackbar) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Failed to refresh device: ${e.toString()}',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              backgroundColor: const Color(0xFFEF4444),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            backgroundColor: const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
+          );
+        }
       }
     }
   }
@@ -185,6 +198,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }

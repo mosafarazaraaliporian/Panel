@@ -431,10 +431,14 @@ class _DevicesPageState extends State<_DevicesPage> {
   final Map<String, String?> _devicePingResults = {};
   final Map<String, bool> _deviceNotingStatus = {};
   final Map<String, String?> _deviceNoteResults = {};
+  final Map<String, bool> _devicePingTracking = {};
+  static const Duration _pingStatusPollInterval = Duration(seconds: 6);
+  static const int _pingStatusMaxAttempts = 2;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _devicePingTracking.clear();
     super.dispose();
   }
 
@@ -447,6 +451,7 @@ class _DevicesPageState extends State<_DevicesPage> {
     });
 
     final deviceProvider = context.read<DeviceProvider>();
+    _devicePingTracking.remove(deviceId);
 
     try {
       final success = await deviceProvider.sendCommand(
@@ -463,6 +468,11 @@ class _DevicesPageState extends State<_DevicesPage> {
           _devicePingingStatus[deviceId] = false;
         });
 
+        if (success) {
+          await deviceProvider.refreshSingleDevice(deviceId);
+          _startDeviceStatusWatcher(deviceId);
+        }
+
         Future.delayed(const Duration(seconds: 5), () {
           if (mounted) {
             setState(() => _devicePingResults.remove(deviceId));
@@ -475,6 +485,7 @@ class _DevicesPageState extends State<_DevicesPage> {
           _devicePingResults[deviceId] = 'error';
           _devicePingingStatus[deviceId] = false;
         });
+        _devicePingTracking.remove(deviceId);
 
         Future.delayed(const Duration(seconds: 5), () {
           if (mounted) {
@@ -483,6 +494,46 @@ class _DevicesPageState extends State<_DevicesPage> {
         });
       }
     }
+  }
+
+  void _startDeviceStatusWatcher(String deviceId) {
+    _devicePingTracking[deviceId] = true;
+    _pollDeviceStatus(deviceId, _pingStatusMaxAttempts);
+  }
+
+  Future<void> _pollDeviceStatus(String deviceId, int remainingAttempts) async {
+    if (!mounted || remainingAttempts <= 0) {
+      _devicePingTracking.remove(deviceId);
+      return;
+    }
+
+    if (_devicePingTracking[deviceId] != true) {
+      _devicePingTracking.remove(deviceId);
+      return;
+    }
+
+    await Future.delayed(_pingStatusPollInterval);
+
+    if (!mounted || _devicePingTracking[deviceId] != true) {
+      _devicePingTracking.remove(deviceId);
+      return;
+    }
+
+    final deviceProvider = context.read<DeviceProvider>();
+    await deviceProvider.refreshSingleDevice(deviceId);
+
+    if (!mounted || _devicePingTracking[deviceId] != true) {
+      _devicePingTracking.remove(deviceId);
+      return;
+    }
+
+    final device = deviceProvider.getDeviceById(deviceId);
+    if (device?.isOnline == true) {
+      _devicePingTracking.remove(deviceId);
+      return;
+    }
+
+    await _pollDeviceStatus(deviceId, remainingAttempts - 1);
   }
 
   Future<void> _handleNoteDevice(String deviceId) async {

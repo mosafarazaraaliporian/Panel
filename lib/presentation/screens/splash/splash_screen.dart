@@ -291,40 +291,85 @@ class _SplashScreenState extends State<SplashScreen>
                       child: RotationTransition(
                         turns: _rotateAnimation,
                         child: Container(
-                          width: 112,
-                          height: 112,
+                          width: 120,
+                          height: 120,
                           decoration: BoxDecoration(
+                            shape: BoxShape.circle,
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: isDark
                                   ? [
-                                const Color(0xFF6366F1),
-                                const Color(0xFF8B5CF6),
-                              ]
+                                      const Color(0xFF0F172A),
+                                      const Color(0xFF1E1B4B),
+                                    ]
                                   : [
-                                Colors.white,
-                                Colors.white.withOpacity(0.9),
-                              ],
+                                      const Color(0xFF111827),
+                                      const Color(0xFF1F2937),
+                                    ],
                             ),
-                            borderRadius: BorderRadius.circular(22.4),
                             boxShadow: [
                               BoxShadow(
-                                color: (isDark
-                                    ? const Color(0xFF6366F1)
-                                    : Colors.black)
-                                    .withOpacity(0.3),
-                                blurRadius: 40,
-                                offset: const Offset(0, 20),
+                                color: Colors.black.withOpacity(0.5),
+                                blurRadius: 35,
+                                offset: const Offset(0, 18),
                               ),
                             ],
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.08),
+                              width: 1.5,
+                            ),
                           ),
-                          child: Icon(
-                            Icons.security_rounded,
-                            size: 56,
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF6366F1),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Text(
+                                'Z',
+                                style: TextStyle(
+                                  fontSize: 70,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: -6,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withOpacity(0.5),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: Transform.rotate(
+                                    angle: -0.3,
+                                    child: Align(
+                                      alignment: Alignment.center,
+                                      child: Container(
+                                        width: 95,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              Color(0xFFFF416C),
+                                              Color(0xFFFF4B2B),
+                                            ],
+                                          ),
+                                          borderRadius: BorderRadius.circular(24),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -342,7 +387,7 @@ class _SplashScreenState extends State<SplashScreen>
                             : [Colors.white, Colors.white],
                       ).createShader(bounds),
                       child: const Text(
-                        'Pannels App',
+                        'ZeroDay Panel',
                         style: TextStyle(
                           fontSize: 38.4,
                           fontWeight: FontWeight.w900,

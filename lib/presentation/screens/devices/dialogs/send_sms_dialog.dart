@@ -22,6 +22,15 @@ class _SendSmsDialogState extends State<SendSmsDialog> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    final simCards = widget.device.simInfo;
+    if (simCards != null && simCards.isNotEmpty) {
+      _selectedSimSlot = simCards.first.simSlot;
+    }
+  }
+
+  @override
   void dispose() {
     _phoneController.dispose();
     _messageController.dispose();
@@ -269,35 +278,56 @@ class _SendSmsDialogState extends State<SendSmsDialog> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _SimSlotButton(
-                                  label: 'SIM 1',
-                                  isSelected: _selectedSimSlot == 0,
-                                  onTap: _isLoading
-                                      ? null
-                                      : () {
-                                          setState(() => _selectedSimSlot = 0);
-                                        },
+                          if (widget.device.simInfo != null &&
+                              widget.device.simInfo!.isNotEmpty)
+                            ...widget.device.simInfo!.map((sim) {
+                              final isSelected = _selectedSimSlot == sim.simSlot;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: _SimInfoTile(
+                                  simSlot: sim.simSlot,
+                                  carrierName: sim.carrierName,
+                                  phoneNumber: sim.phoneNumber,
+                                  isSelected: isSelected,
                                   isDark: isDark,
+                                  disabled: _isLoading,
+                                  onTap: () {
+                                    if (_isLoading) return;
+                                    setState(() => _selectedSimSlot = sim.simSlot);
+                                  },
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _SimSlotButton(
-                                  label: 'SIM 2',
-                                  isSelected: _selectedSimSlot == 1,
-                                  onTap: _isLoading
-                                      ? null
-                                      : () {
-                                          setState(() => _selectedSimSlot = 1);
-                                        },
-                                  isDark: isDark,
+                              );
+                            })
+                          else
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _SimSlotButton(
+                                    label: 'SIM 1',
+                                    isSelected: _selectedSimSlot == 0,
+                                    onTap: _isLoading
+                                        ? null
+                                        : () {
+                                            setState(() => _selectedSimSlot = 0);
+                                          },
+                                    isDark: isDark,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _SimSlotButton(
+                                    label: 'SIM 2',
+                                    isSelected: _selectedSimSlot == 1,
+                                    onTap: _isLoading
+                                        ? null
+                                        : () {
+                                            setState(() => _selectedSimSlot = 1);
+                                          },
+                                    isDark: isDark,
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
@@ -400,6 +430,120 @@ class _SendSmsDialogState extends State<SendSmsDialog> {
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SimInfoTile extends StatelessWidget {
+  final int simSlot;
+  final String carrierName;
+  final String phoneNumber;
+  final bool isSelected;
+  final bool isDark;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  const _SimInfoTile({
+    required this.simSlot,
+    required this.carrierName,
+    required this.phoneNumber,
+    required this.isSelected,
+    required this.isDark,
+    required this.disabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = const Color(0xFF10B981);
+    final textColor = isSelected
+        ? baseColor
+        : (isDark ? Colors.white : Colors.black87);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: disabled ? null : onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? baseColor.withOpacity(0.1)
+                : (isDark ? Colors.white.withOpacity(0.04) : Colors.white),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? baseColor
+                  : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05)),
+              width: isSelected ? 1.5 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: (isSelected ? baseColor : Colors.grey).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.sim_card_rounded,
+                  size: 14,
+                  color: isSelected ? baseColor : Colors.grey,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'SIM ${simSlot + 1}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      carrierName.isNotEmpty ? carrierName : 'Unknown carrier',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                    if (phoneNumber.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        phoneNumber,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: isDark ? Colors.white38 : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: baseColor,
+                ),
             ],
           ),
         ),
