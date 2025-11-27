@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _mainController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2500),
+      duration: const Duration(milliseconds: 1600),
     );
 
     _pulseController = AnimationController(
@@ -41,12 +41,12 @@ class _SplashScreenState extends State<SplashScreen>
 
     _orbitController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 8),
+      duration: const Duration(seconds: 5),
     )..repeat();
 
     _glitchController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 2000),
     )..repeat();
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -266,19 +266,19 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0A0E1A),
-              Color(0xFF1A1F2E),
-              Color(0xFF0F0F23),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
+        body: Container(
+         decoration: const BoxDecoration(
+           gradient: LinearGradient(
+             begin: Alignment.topLeft,
+             end: Alignment.bottomRight,
+             colors: [
+               Color(0xFF0B0F19),
+               Color(0xFF1A1F2E),
+               Color(0xFF111827),
+             ],
+             stops: [0.0, 0.6, 1.0],
+           ),
+         ),
         child: Stack(
           children: [
             // Animated background particles
@@ -471,10 +471,10 @@ class _SplashScreenState extends State<SplashScreen>
                                         child: const Text(
                                           'Z',
                                           style: TextStyle(
-                                            fontSize: 100,
+                                            fontSize: 85,
                                             fontWeight: FontWeight.w900,
                                             color: Colors.white,
-                                            letterSpacing: -5,
+                                            letterSpacing: -4,
                                           ),
                                         ),
                                       ),
@@ -486,7 +486,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ],
                         ),
 
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 30),
 
                         // Title with glitch effect
                         AnimatedBuilder(
@@ -510,10 +510,10 @@ class _SplashScreenState extends State<SplashScreen>
                                 child: const Text(
                                   'ZERODAY',
                                   style: TextStyle(
-                                    fontSize: 48,
+                                    fontSize: 40,
                                     fontWeight: FontWeight.w900,
                                     color: Colors.white,
-                                    letterSpacing: 8,
+                                    letterSpacing: 6,
                                     height: 1,
                                   ),
                                 ),
@@ -527,73 +527,72 @@ class _SplashScreenState extends State<SplashScreen>
                         // Subtitle
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 10,
+                            horizontal: 16,
+                            vertical: 6,
                           ),
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: const Color(0xFF00F5FF).withOpacity(0.3),
-                              width: 1.5,
+                              color: const Color(0xFF00F5FF).withOpacity(0.25),
                             ),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Text(
                             'ADVANCED CONTROL PANEL',
                             style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
                               color: Color(0xFF00F5FF),
-                              letterSpacing: 3,
+                              letterSpacing: 2,
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 60),
+                        const SizedBox(height: 44),
 
                         // Loading animation
                         Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            SizedBox(
-                              width: 70,
-                              height: 70,
-                              child: AnimatedBuilder(
-                                animation: _orbitController,
-                                builder: (context, child) {
-                                  return CustomPaint(
-                                    painter: HexagonLoadingPainter(
-                                      progress: _orbitController.value,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const Icon(
-                              Icons.lock_outline_rounded,
-                              color: Color(0xFF00F5FF),
-                              size: 28,
-                            ),
-                          ],
-                        ),
+                           alignment: Alignment.center,
+                           children: [
+                             SizedBox(
+                               width: 52,
+                               height: 52,
+                               child: AnimatedBuilder(
+                                 animation: _orbitController,
+                                 builder: (context, child) {
+                                   return CustomPaint(
+                                     painter: HexagonLoadingPainter(
+                                       progress: _orbitController.value,
+                                     ),
+                                   );
+                                 },
+                               ),
+                             ),
+                             const Icon(
+                               Icons.lock_outline_rounded,
+                               color: Color(0xFF00F5FF),
+                               size: 22,
+                             ),
+                           ],
+                         ),
 
-                        const SizedBox(height: 24),
+                         const SizedBox(height: 18),
 
-                        // Loading text
-                        AnimatedBuilder(
-                          animation: _orbitController,
-                          builder: (context, child) {
-                            final dots = '.' * ((_orbitController.value * 3).floor() + 1);
-                            return Text(
-                              'INITIALIZING SYSTEMS$dots',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white.withOpacity(0.7),
-                                letterSpacing: 2,
-                              ),
-                            );
-                          },
-                        ),
+                         // Loading text
+                         AnimatedBuilder(
+                           animation: _orbitController,
+                           builder: (context, child) {
+                             final dots = '.' * ((_orbitController.value * 3).floor() + 1);
+                             return Text(
+                               'Initializing systems$dots',
+                               style: TextStyle(
+                                 fontSize: 10,
+                                 fontWeight: FontWeight.w600,
+                                 color: Colors.white.withOpacity(0.75),
+                                 letterSpacing: 1.2,
+                               ),
+                             );
+                           },
+                         ),
                       ],
                     ),
                   ),
@@ -603,7 +602,7 @@ class _SplashScreenState extends State<SplashScreen>
 
             // Top status bar
             Positioned(
-              top: 50,
+              top: 40,
               left: 0,
               right: 0,
               child: FadeTransition(
@@ -611,55 +610,41 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+                      horizontal: 16,
+                      vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF00F5FF).withOpacity(0.15),
-                          const Color(0xFFFF006E).withOpacity(0.15),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(30),
+                      color: const Color(0xFF1E1B4B).withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: const Color(0xFF00F5FF).withOpacity(0.3),
-                        width: 1.5,
+                        color: Colors.white.withOpacity(0.2),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00F5FF).withOpacity(0.2),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 8,
-                          height: 8,
+                          width: 6,
+                          height: 6,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00FF88),
+                            color: const Color(0xFF22C55E),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF00FF88).withOpacity(0.8),
-                                blurRadius: 8,
-                                spreadRadius: 2,
+                                color: const Color(0xFF22C55E).withOpacity(0.9),
+                                blurRadius: 6,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         const Text(
-                          'SECURE CONNECTION ACTIVE',
+                          'Secure connection active',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.5,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ],
