@@ -7,30 +7,36 @@ class DateUtils {
     if (timestamp == null) {
       return DateTime.now();
     }
-    
-    if (timestamp is int) {
-      return DateTime.fromMillisecondsSinceEpoch(timestamp, isUtc: true).toLocal();
+
+    if (timestamp is num) {
+      final bool isSecondsPrecision = timestamp.abs() < 1000000000000;
+      final int millis = isSecondsPrecision ? (timestamp * 1000).round() : timestamp.round();
+      return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true).toLocal();
     }
-    
+
     if (timestamp is String) {
+      final trimmed = timestamp.trim();
+      if (trimmed.isEmpty) {
+        return DateTime.now();
+      }
+
+      final num? numericValue = num.tryParse(trimmed);
+      if (numericValue != null) {
+        return parseTimestamp(numericValue);
+      }
+
       try {
-        final date = DateTime.parse(timestamp);
-        if (date.isUtc) {
-          return date.toLocal();
-        }
-        return date;
-      } catch (e) {
+        final date = DateTime.parse(trimmed);
+        return date.toLocal();
+      } catch (_) {
         return DateTime.now();
       }
     }
-    
+
     if (timestamp is DateTime) {
-      if (timestamp.isUtc) {
-        return timestamp.toLocal();
-      }
-      return timestamp;
+      return _toLocal(timestamp);
     }
-    
+
     return DateTime.now();
   }
 

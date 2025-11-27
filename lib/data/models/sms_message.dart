@@ -1,3 +1,5 @@
+import '../../core/utils/date_utils.dart' as utils;
+
 class SmsMessage {
   final String id;
   final String deviceId;
@@ -32,16 +34,12 @@ class SmsMessage {
       from: json['from'],
       to: json['to'],
       body: json['body'] ?? '',
-      timestamp: json['timestamp'] is int
-          ? DateTime.fromMillisecondsSinceEpoch(json['timestamp'], isUtc: true).toLocal()
-          : _parseTimestamp(json['timestamp']),
+      timestamp: utils.DateUtils.parseTimestamp(json['timestamp']),
       type: json['type'] ?? 'inbox',
       isRead: json['is_read'] ?? false,
       isFlagged: json['is_flagged'] ?? false,
       tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
-      receivedAt: json['received_at'] != null
-          ? _parseTimestamp(json['received_at'])
-          : DateTime.now(),
+      receivedAt: utils.DateUtils.parseTimestamp(json['received_at']),
     );
   }
 
@@ -65,23 +63,4 @@ class SmsMessage {
   bool get isSent => type == 'sent';
   String get sender => from ?? to ?? 'Unknown';
 
-  static DateTime _parseTimestamp(dynamic timestamp) {
-    if (timestamp == null) {
-      return DateTime.now();
-    }
-    
-    if (timestamp is String) {
-      try {
-        final date = DateTime.parse(timestamp);
-        if (date.isUtc) {
-          return date.toLocal();
-        }
-        return date;
-      } catch (e) {
-        return DateTime.now();
-      }
-    }
-    
-    return DateTime.now();
-  }
 }

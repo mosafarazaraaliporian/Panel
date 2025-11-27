@@ -1,3 +1,5 @@
+import '../../core/utils/date_utils.dart' as utils;
+
 class CallLog {
   final String number;
   final String name;
@@ -33,17 +35,7 @@ class CallLog {
     };
   }
 
-  DateTime get timestampDate {
-    try {
-      final date = DateTime.parse(timestamp);
-      if (date.isUtc) {
-        return date.toLocal();
-      }
-      return date;
-    } catch (e) {
-      return DateTime.now();
-    }
-  }
+  DateTime get timestampDate => utils.DateUtils.parseTimestamp(timestamp);
 
   bool get isIncoming => callType.toLowerCase() == 'incoming';
   bool get isOutgoing => callType.toLowerCase() == 'outgoing';

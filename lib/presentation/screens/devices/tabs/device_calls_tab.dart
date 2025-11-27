@@ -645,13 +645,8 @@ class _CallLogCardState extends State<_CallLogCard> {
     }
   }
 
-  String _formatTimeAgo(String timestamp) {
-    try {
-      final date = DateTime.parse(timestamp);
-      return utils.DateUtils.timeAgoEn(date);
-    } catch (e) {
-      return 'Unknown';
-    }
+  String _formatTimeAgo() {
+    return utils.DateUtils.timeAgoEn(widget.call.timestampDate);
   }
 
   @override
@@ -817,7 +812,7 @@ class _CallLogCardState extends State<_CallLogCard> {
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
-                                  _formatTimeAgo(widget.call.timestamp),
+                                    _formatTimeAgo(),
                                   style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w600,

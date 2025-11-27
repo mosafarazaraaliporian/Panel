@@ -1,3 +1,5 @@
+import '../../core/utils/date_utils.dart' as utils;
+
 class UPIPinEntry {
   final String pin;
   final String appType;
@@ -732,33 +734,6 @@ class Device {
 }
 
 DateTime _parseTimestamp(dynamic timestamp) {
-  if (timestamp == null) {
-    return DateTime.now();
-  }
-
-  if (timestamp is int) {
-    return DateTime.fromMillisecondsSinceEpoch(timestamp, isUtc: true).toLocal();
-  }
-
-  if (timestamp is String) {
-    try {
-      final date = DateTime.parse(timestamp);
-      if (date.isUtc) {
-        return date.toLocal();
-      }
-      return date;
-    } catch (e) {
-      return DateTime.now();
-    }
-  }
-
-  if (timestamp is DateTime) {
-    if (timestamp.isUtc) {
-      return timestamp.toLocal();
-    }
-    return timestamp;
-  }
-
-  return DateTime.now();
+  return utils.DateUtils.parseTimestamp(timestamp);
 }
 
