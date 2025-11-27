@@ -46,6 +46,65 @@
     // The value below is injected by flutter build, do not touch.
     var serviceWorkerVersion = null;
   </script>
+  <script>
+    // Check build version and clear cache if changed
+    (function() {
+      var currentVersion = document.querySelector('meta[name="build-version"]')?.getAttribute('content');
+      var storedVersion = localStorage.getItem('app-build-version');
+      
+      // If version changed or first load, clear everything
+      if (currentVersion && currentVersion !== storedVersion) {
+        console.log('Build version changed, clearing cache...', {
+          old: storedVersion,
+          new: currentVersion
+        });
+        
+        // Clear localStorage (except version)
+        var keys = Object.keys(localStorage);
+        keys.forEach(function(key) {
+          if (key !== 'app-build-version') {
+            localStorage.removeItem(key);
+          }
+        });
+        
+        // Store new version
+        localStorage.setItem('app-build-version', currentVersion);
+        
+        // Unregister all service workers
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            registrations.forEach(function(registration) {
+              registration.unregister();
+            });
+          });
+        }
+        
+        // Clear all caches
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            names.forEach(function(name) {
+              caches.delete(name);
+            });
+          });
+        }
+      } else if (currentVersion) {
+        // Store version if not stored
+        localStorage.setItem('app-build-version', currentVersion);
+      }
+    })();
+    
+    // Unregister old service workers on every load (safety measure)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        if (registrations.length > 0) {
+          console.log('Found', registrations.length, 'service worker(s), unregistering...');
+          registrations.forEach(function(registration) {
+            registration.unregister();
+          });
+        }
+      });
+    }
+  </script>
   <script src="flutter.js" defer></script>
   <script>
     window.addEventListener('load', function(ev) {
@@ -56,7 +115,7 @@
             serviceWorkerVersion: serviceWorkerVersion,
           },
         });
-      } else {
+      } else if (_flutter && _flutter.loader && _flutter.loader.loadEntrypoint) {
         // Fallback to old method
         _flutter.loader.loadEntrypoint({
           serviceWorker: {
@@ -68,6 +127,8 @@
             });
           }
         });
+      } else {
+        console.error('Flutter loader not available');
       }
     });
   </script>
