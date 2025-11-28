@@ -12,10 +12,12 @@ class LeakLookupScreen extends StatefulWidget {
   State<LeakLookupScreen> createState() => _LeakLookupScreenState();
 }
 
-class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProviderStateMixin {
+class _LeakLookupScreenState extends State<LeakLookupScreen>
+    with TickerProviderStateMixin {
   final ToolsRepository _repository = ToolsRepository();
   final TextEditingController _queryController = TextEditingController();
-  final TextEditingController _limitController = TextEditingController(text: '100');
+  final TextEditingController _limitController =
+      TextEditingController(text: '100');
 
   bool _isLoading = false;
   String _language = 'en';
@@ -26,13 +28,19 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
   late AnimationController _pulseController;
   late AnimationController _slideController;
 
+  static const int _defaultLimit = 100;
+  static const int _minLimit = 1;
+  static const int _maxLimit = 10000;
+  static const int _maxDisplayItems = 10;
+
   @override
   void initState() {
     super.initState();
-    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
-      _queryController.text = widget.initialQuery!;
-    }
-    
+    _initializeControllers();
+    _setInitialQuery();
+  }
+
+  void _initializeControllers() {
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -42,6 +50,12 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
+  }
+
+  void _setInitialQuery() {
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      _queryController.text = widget.initialQuery!;
+    }
   }
 
   @override
@@ -55,26 +69,13 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
 
   Future<void> _runLookup() async {
     final query = _queryController.text.trim();
+
     if (query.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white),
-              SizedBox(width: 12),
-              Text('Please enter a phone number or query'),
-            ],
-          ),
-          backgroundColor: Colors.orange.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      _showWarningSnackBar('Please enter a phone number or query');
       return;
     }
 
-    int limit = int.tryParse(_limitController.text.trim()) ?? 100;
-    limit = limit.clamp(1, 10000);
+    final limit = _parseAndClampLimit();
 
     setState(() {
       _isLoading = true;
@@ -106,6 +107,77 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
     }
   }
 
+  int _parseAndClampLimit() {
+    final limit = int.tryParse(_limitController.text.trim()) ?? _defaultLimit;
+    return limit.clamp(_minLimit, _maxLimit);
+  }
+
+  void _showWarningSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Text(message),
+          ],
+        ),
+        backgroundColor: Colors.orange.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 16),
+            const SizedBox(width: 6),
+            Text(message, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
+  void _resetForm() {
+    _queryController.clear();
+    _limitController.text = _defaultLimit.toString();
+    setState(() {
+      _result = null;
+      _errorMessage = null;
+      _showJson = false;
+    });
+  }
+
+  void _toggleJsonView() {
+    setState(() => _showJson = !_showJson);
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text != null) {
+      _queryController.text = data!.text!;
+    }
+  }
+
+  void _copyJsonToClipboard() {
+    final prettyJson = const JsonEncoder.withIndent('  ').convert(_result);
+    Clipboard.setData(ClipboardData(text: prettyJson));
+    _showSuccessSnackBar('Copied to clipboard');
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -116,17 +188,7 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isDark
-                ? [
-                    const Color(0xFF0F172A),
-                    const Color(0xFF1E1B4B),
-                    const Color(0xFF312E81),
-                  ]
-                : [
-                    const Color(0xFFF0F9FF),
-                    const Color(0xFFE0E7FF),
-                    const Color(0xFFDDD6FE),
-                  ],
+            colors: _getBackgroundGradientColors(isDark),
           ),
         ),
         child: SafeArea(
@@ -135,12 +197,12 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
               _buildAppBar(isDark),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSearchCard(isDark),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 8),
                       _buildResultSection(isDark),
                     ],
                   ),
@@ -153,10 +215,24 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
     );
   }
 
+  List<Color> _getBackgroundGradientColors(bool isDark) {
+    return isDark
+        ? [
+            const Color(0xFF0F172A),
+            const Color(0xFF1E1B4B),
+            const Color(0xFF312E81),
+          ]
+        : [
+            const Color(0xFFF0F9FF),
+            const Color(0xFFE0E7FF),
+            const Color(0xFFDDD6FE),
+          ];
+  }
+
   Widget _buildAppBar(bool isDark) {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.all(6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -166,69 +242,24 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF6366F1).withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.shield_outlined,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Leak Lookup',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Security Intelligence Search',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildAppBarIcon(),
+          const SizedBox(width: 6),
+          _buildAppBarTitle(),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Colors.white),
             tooltip: 'Reset',
-            onPressed: _isLoading
-                ? null
-                : () {
-                    _queryController.clear();
-                    _limitController.text = '100';
-                    setState(() {
-                      _result = null;
-                      _errorMessage = null;
-                      _showJson = false;
-                    });
-                  },
+            onPressed: _isLoading ? null : _resetForm,
           ),
           IconButton(
             icon: const Icon(Icons.close_rounded, color: Colors.white),
@@ -240,91 +271,148 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
     );
   }
 
-  Widget _buildSearchCard(bool isDark) {
+  Widget _buildAppBarIcon() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1F2937) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: const Icon(
+        Icons.shield_outlined,
+        color: Colors.white,
+        size: 16,
+      ),
+    );
+  }
+
+  Widget _buildAppBarTitle() {
+    return const Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Leak Lookup',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.3,
+            ),
+          ),
+          SizedBox(height: 1),
+          Text(
+            'Security Intelligence Search',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 9,
+              letterSpacing: 0.2,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSearchCard(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: _getCardDecoration(isDark),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.search_rounded,
-                  color: Color(0xFF6366F1),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Search Parameters',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildTextField(
-            controller: _queryController,
-            label: 'Query',
-            hint: '+989123456789',
-            icon: Icons.phone_android_rounded,
-            iconColor: const Color(0xFF6366F1),
-            isDark: isDark,
-            onPaste: () async {
-              final data = await Clipboard.getData(Clipboard.kTextPlain);
-              if (data?.text != null) {
-                _queryController.text = data!.text!;
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  controller: _limitController,
-                  label: 'Limit',
-                  hint: '100',
-                  icon: Icons.filter_list_rounded,
-                  iconColor: const Color(0xFF3B82F6),
-                  isDark: isDark,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildLanguageDropdown(isDark),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
+          _buildSearchCardHeader(isDark),
+          const SizedBox(height: 8),
+          _buildQueryField(isDark),
+          const SizedBox(height: 6),
+          _buildOptionsRow(isDark),
+          const SizedBox(height: 8),
           _buildSearchButton(),
         ],
       ),
+    );
+  }
+
+  BoxDecoration _getCardDecoration(bool isDark) {
+    return BoxDecoration(
+      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withOpacity(0.1)
+            : Colors.black.withOpacity(0.1),
+        width: 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchCardHeader(bool isDark) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF6366F1).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Icon(
+            Icons.search_rounded,
+            color: Color(0xFF6366F1),
+            size: 14,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          'Search Parameters',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQueryField(bool isDark) {
+    return _buildTextField(
+      controller: _queryController,
+      label: 'Query',
+      hint: '+989123456789',
+      icon: Icons.phone_android_rounded,
+      iconColor: const Color(0xFF6366F1),
+      isDark: isDark,
+      onPaste: _pasteFromClipboard,
+    );
+  }
+
+  Widget _buildOptionsRow(bool isDark) {
+    return Row(
+      children: [
+        Expanded(child: _buildLimitField(isDark)),
+        const SizedBox(width: 6),
+        Expanded(child: _buildLanguageDropdown(isDark)),
+      ],
+    );
+  }
+
+  Widget _buildLimitField(bool isDark) {
+    return _buildTextField(
+      controller: _limitController,
+      label: 'Limit',
+      hint: '100',
+      icon: Icons.filter_list_rounded,
+      iconColor: const Color(0xFF3B82F6),
+      isDark: isDark,
+      keyboardType: TextInputType.number,
     );
   }
 
@@ -341,43 +429,53 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
     return TextField(
       controller: controller,
       keyboardType: keyboardType ?? TextInputType.text,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, color: iconColor, size: 20),
-        suffixIcon: onPaste != null
-            ? IconButton(
-                icon: const Icon(Icons.content_paste_rounded, size: 20),
-                tooltip: 'Paste',
-                onPressed: _isLoading ? null : onPaste,
-              )
-            : null,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        prefixIcon: Icon(icon, color: iconColor, size: 16),
+        suffixIcon: onPaste != null ? _buildPasteButton(onPaste) : null,
         filled: true,
-        fillColor: isDark 
+        fillColor: isDark
             ? const Color(0xFF0F172A).withOpacity(0.5)
             : const Color(0xFFF8FAFC),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: iconColor,
-            width: 2,
-          ),
-        ),
+        border: _getTextFieldBorder(isDark, iconColor),
+        enabledBorder: _getTextFieldBorder(isDark, iconColor),
+        focusedBorder: _getFocusedBorder(iconColor),
+      ),
+    );
+  }
+
+  Widget _buildPasteButton(VoidCallback onPaste) {
+    return IconButton(
+      icon: const Icon(Icons.content_paste_rounded, size: 16),
+      tooltip: 'Paste',
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      onPressed: _isLoading ? null : onPaste,
+    );
+  }
+
+  OutlineInputBorder _getTextFieldBorder(bool isDark, Color iconColor) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: isDark
+            ? Colors.white.withOpacity(0.1)
+            : Colors.black.withOpacity(0.1),
+        width: 1,
+      ),
+    );
+  }
+
+  OutlineInputBorder _getFocusedBorder(Color iconColor) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: iconColor,
+        width: 2,
       ),
     );
   }
@@ -388,17 +486,23 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
         color: isDark ? const Color(0xFF111827) : const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.1),
           width: 1,
         ),
       ),
       child: DropdownButtonFormField<String>(
         value: _language,
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           labelText: 'Language',
-          prefixIcon: const Icon(Icons.translate_rounded, color: Color(0xFF10B981), size: 20),
+          prefixIcon: Icon(
+            Icons.translate_rounded,
+            color: Color(0xFF10B981),
+            size: 20,
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
         dropdownColor: isDark ? const Color(0xFF1F2937) : Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -422,7 +526,7 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       width: double.infinity,
-      height: 52,
+      height: 36,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: _isLoading
@@ -446,30 +550,30 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
         color: Colors.transparent,
         child: InkWell(
           onTap: _isLoading ? null : _runLookup,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           child: Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (_isLoading)
                   const SizedBox(
-                    width: 24,
-                    height: 24,
+                    width: 16,
+                    height: 16,
                     child: CircularProgressIndicator(
-                      strokeWidth: 3,
+                      strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
                 else
-                  const Icon(Icons.search_rounded, color: Colors.white, size: 24),
-                const SizedBox(width: 12),
+                  const Icon(Icons.search_rounded, color: Colors.white, size: 16),
+                const SizedBox(width: 6),
                 Text(
                   _isLoading ? 'Searching...' : 'Start Search',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ],
@@ -502,7 +606,7 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
         child: Column(
           children: [
             _buildResultStats(isDark),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
             _buildResultCard(isDark),
           ],
         ),
@@ -512,9 +616,9 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
 
   Widget _buildResultStats(bool isDark) {
     final List<dynamic> data = _result?['Data'] ?? [];
-    
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -522,167 +626,166 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
             const Color(0xFF059669).withOpacity(0.2),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: const Color(0xFF10B981).withOpacity(0.3),
         ),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.check_circle_rounded,
-              color: Color(0xFF10B981),
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Search Complete',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${data.length} results found',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildSuccessIcon(),
+          const SizedBox(width: 6),
+          Expanded(child: _buildStatsText(data.length, isDark)),
           IconButton(
             icon: Icon(
               _showJson ? Icons.view_list_rounded : Icons.code_rounded,
               color: const Color(0xFF10B981),
             ),
             tooltip: _showJson ? 'Card View' : 'JSON View',
-            onPressed: () {
-              setState(() => _showJson = !_showJson);
-            },
+            onPressed: _toggleJsonView,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildResultCard(bool isDark) {
-    final prettyJson = const JsonEncoder.withIndent('  ').convert(_result);
-
+  Widget _buildSuccessIcon() {
     return Container(
-      constraints: const BoxConstraints(minHeight: 300),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark 
-            ? const Color(0xFF1E293B).withOpacity(0.7)
-            : Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isDark 
-              ? Colors.white.withOpacity(0.1) 
-              : Colors.black.withOpacity(0.05),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: const Color(0xFF10B981).withOpacity(0.2),
+        borderRadius: BorderRadius.circular(6),
       ),
+      child: const Icon(
+        Icons.check_circle_rounded,
+        color: Color(0xFF10B981),
+        size: 16,
+      ),
+    );
+  }
+
+  Widget _buildStatsText(int resultCount, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Search Complete',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '$resultCount results found',
+          style: TextStyle(
+            fontSize: 10,
+            color: isDark ? Colors.white70 : Colors.black54,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultCard(bool isDark) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 150),
+      padding: const EdgeInsets.all(8),
+      decoration: _getResultCardDecoration(isDark),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.dataset_rounded, color: Color(0xFF6366F1)),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Results',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.copy_all_rounded, size: 20),
-                tooltip: 'Copy JSON',
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: prettyJson));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.white),
-                          SizedBox(width: 12),
-                          Text('Copied to clipboard'),
-                        ],
-                      ),
-                      backgroundColor: const Color(0xFF10B981),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (_showJson)
-            Container(
-              constraints: const BoxConstraints(maxHeight: 500),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark 
-                      ? Colors.white.withOpacity(0.1) 
-                      : Colors.black.withOpacity(0.05),
-                ),
-              ),
-              child: Scrollbar(
-                thumbVisibility: true,
-                child: SingleChildScrollView(
-                  child: SelectableText(
-                    prettyJson,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 13,
-                      color: isDark ? Colors.white : const Color(0xFF1F2937),
-                      height: 1.6,
-                    ),
-                  ),
-                ),
-              ),
-            )
-          else
-            _buildDataCards(isDark),
+          _buildResultHeader(isDark),
+          const SizedBox(height: 8),
+          if (_showJson) _buildJsonView(isDark) else _buildDataCards(isDark),
         ],
+      ),
+    );
+  }
+
+  BoxDecoration _getResultCardDecoration(bool isDark) {
+    return BoxDecoration(
+      color: isDark
+          ? const Color(0xFF1E293B).withOpacity(0.7)
+          : Colors.white.withOpacity(0.9),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withOpacity(0.1)
+            : Colors.black.withOpacity(0.05),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultHeader(bool isDark) {
+    return Row(
+      children: [
+        const Icon(Icons.dataset_rounded, color: Color(0xFF6366F1), size: 16),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            'Results',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.copy_all_rounded, size: 16),
+          tooltip: 'Copy JSON',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          onPressed: _copyJsonToClipboard,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJsonView(bool isDark) {
+    final prettyJson = const JsonEncoder.withIndent('  ').convert(_result);
+
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 300),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      child: Scrollbar(
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          child: SelectableText(
+            prettyJson,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 10,
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
+              height: 1.4,
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildDataCards(bool isDark) {
     final List<dynamic> data = _result?['Data'] ?? [];
-    
+
     if (data.isEmpty) {
       return const Center(
         child: Padding(
@@ -695,58 +798,59 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: data.length > 10 ? 10 : data.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = data[index];
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark 
-                ? const Color(0xFF0F172A).withOpacity(0.5)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark 
-                  ? Colors.white.withOpacity(0.05) 
-                  : Colors.black.withOpacity(0.05),
+      itemCount: data.length > _maxDisplayItems ? _maxDisplayItems : data.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 6),
+      itemBuilder: (context, index) => _buildDataCard(data[index], index, isDark),
+    );
+  }
+
+  Widget _buildDataCard(dynamic item, int index, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF0F172A).withOpacity(0.5)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDataCardBadge(index),
+          const SizedBox(height: 6),
+          SelectableText(
+            item.toString(),
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.white70 : Colors.black87,
+              height: 1.4,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF6366F1).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '#${index + 1}',
-                      style: const TextStyle(
-                        color: Color(0xFF6366F1),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SelectableText(
-                item.toString(),
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? Colors.white70 : Colors.black87,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataCardBadge(int index) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFF6366F1).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        '#${index + 1}',
+        style: const TextStyle(
+          color: Color(0xFF6366F1),
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -755,50 +859,29 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
       animation: _pulseController,
       builder: (context, child) {
         return Container(
-          constraints: const BoxConstraints(minHeight: 300),
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: isDark 
-                ? const Color(0xFF1E293B).withOpacity(0.7)
-                : Colors.white.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isDark 
-                  ? Colors.white.withOpacity(0.1) 
-                  : Colors.black.withOpacity(0.05),
-            ),
-          ),
+          constraints: const BoxConstraints(minHeight: 150),
+          padding: const EdgeInsets.all(16),
+          decoration: _getCardDecoration(isDark),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withOpacity(0.1 + (_pulseController.value * 0.1)),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.search_off_rounded,
-                  color: Color(0xFF6366F1),
-                  size: 64,
-                ),
-              ),
-              const SizedBox(height: 24),
+              _buildPulsingIcon(),
+              const SizedBox(height: 12),
               Text(
                 'Ready to Search',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               Text(
                 'Enter your query above and click\n"Start Search" to begin',
                 style: TextStyle(
                   color: isDark ? Colors.white54 : Colors.grey,
-                  fontSize: 14,
-                  height: 1.5,
+                  fontSize: 10,
+                  height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -809,58 +892,78 @@ class _LeakLookupScreenState extends State<LeakLookupScreen> with TickerProvider
     );
   }
 
+  Widget _buildPulsingIcon() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF6366F1)
+            .withOpacity(0.1 + (_pulseController.value * 0.1)),
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.search_off_rounded,
+        color: Color(0xFF6366F1),
+        size: 32,
+      ),
+    );
+  }
+
   Widget _buildErrorCard(bool isDark) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 300),
-      padding: const EdgeInsets.all(40),
+      constraints: const BoxConstraints(minHeight: 150),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark 
+        color: isDark
             ? const Color(0xFF1E293B).withOpacity(0.7)
             : Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: Colors.red.withOpacity(0.3),
-          width: 1.5,
+          width: 1,
         ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.error_outline_rounded,
-              color: Colors.red,
-              size: 64,
-            ),
-          ),
-          const SizedBox(height: 24),
+          _buildErrorIcon(),
+          const SizedBox(height: 12),
           const Text(
             'Search Failed',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.red,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               _errorMessage!,
               style: TextStyle(
                 color: Colors.red.withOpacity(0.8),
-                fontSize: 14,
-                height: 1.5,
+                fontSize: 10,
+                height: 1.4,
               ),
               textAlign: TextAlign.center,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorIcon() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.error_outline_rounded,
+        color: Colors.red,
+        size: 32,
       ),
     );
   }

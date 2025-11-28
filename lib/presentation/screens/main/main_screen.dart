@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -497,6 +497,8 @@ class _DevicesPageState extends State<_DevicesPage> {
   final Map<String, bool> _devicePingTracking = {};
   static const Duration _pingStatusPollInterval = Duration(seconds: 6);
   static const int _pingStatusMaxAttempts = 2;
+  
+  bool get _supportsZoom => kIsWeb || defaultTargetPlatform == TargetPlatform.windows;
 
   @override
   void dispose() {
@@ -816,290 +818,121 @@ class _DevicesPageState extends State<_DevicesPage> {
               child: Row(
                 children: [
                   Expanded(
-                    child: ClipRect(
-                      child: Transform.scale(
-                        scale: _filterScale,
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          height: 32 * _filterScale,
-                          margin: EdgeInsets.symmetric(vertical: 6 * _filterScale),
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            padding: EdgeInsets.symmetric(horizontal: 12 * _filterScale),
-                            children: [
-
-                            if (deviceProvider.statusFilter != null ||
-                                deviceProvider.connectionFilter != null ||
-                                deviceProvider.upiFilter != null ||
-                                deviceProvider.notePriorityFilter != null ||
-                                deviceProvider.appTypeFilter != null ||
-                                deviceProvider.adminFilter != null) ...[
-                              _UltraCompactChip(
-                                label: 'Clear',
-                                icon: Icons.close_rounded,
-                                color: Colors.red,
-                                onTap: () => deviceProvider.clearAllFilters(),
+                    child: _supportsZoom
+                        ? ClipRect(
+                            child: Transform.scale(
+                              scale: _filterScale,
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                height: 32 * _filterScale,
+                                margin: EdgeInsets.symmetric(vertical: 6 * _filterScale),
+                                child: ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: EdgeInsets.symmetric(horizontal: 12 * _filterScale),
+                                  children: [
+                                    _buildFilterChips(deviceProvider, admin),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(width: 8),
-                              _FilterDivider(color: Colors.red.withOpacity(0.3)),
-                              const SizedBox(width: 8),
-                            ],
-
-                            _CategoryIcon(icon: Icons.check_circle_outline, color: const Color(0xFF10B981)),
-                            _UltraCompactChip(
-                              label: 'Active',
-                              count: deviceProvider.activeDevices,
-                              isSelected: deviceProvider.statusFilter == StatusFilter.active,
-                              onTap: () => deviceProvider.setStatusFilter(StatusFilter.active),
-                              color: const Color(0xFF10B981),
                             ),
-                            _UltraCompactChip(
-                              label: 'Pending',
-                              count: deviceProvider.pendingDevices,
-                              isSelected: deviceProvider.statusFilter == StatusFilter.pending,
-                              onTap: () => deviceProvider.setStatusFilter(StatusFilter.pending),
-                              color: const Color(0xFFF59E0B),
-                            ),
-                            const SizedBox(width: 4),
-                            _FilterDivider(color: const Color(0xFF10B981).withOpacity(0.3)),
-                            const SizedBox(width: 4),
-
-                            _CategoryIcon(icon: Icons.wifi_rounded, color: const Color(0xFF14B8A6)),
-                            _UltraCompactChip(
-                              label: 'Online',
-                              count: deviceProvider.onlineDevices,
-                              isSelected: deviceProvider.connectionFilter == ConnectionFilter.online,
-                              onTap: () => deviceProvider.setConnectionFilter(ConnectionFilter.online),
-                              color: const Color(0xFF14B8A6),
-                            ),
-                            _UltraCompactChip(
-                              label: 'Offline',
-                              count: deviceProvider.offlineDevices,
-                              isSelected: deviceProvider.connectionFilter == ConnectionFilter.offline,
-                              onTap: () => deviceProvider.setConnectionFilter(ConnectionFilter.offline),
-                              color: const Color(0xFFEF4444),
-                            ),
-                            const SizedBox(width: 4),
-                            _FilterDivider(color: const Color(0xFF14B8A6).withOpacity(0.3)),
-                            const SizedBox(width: 4),
-
-                            _CategoryIcon(icon: Icons.payment_rounded, color: const Color(0xFF8B5CF6)),
-                            _UltraCompactChip(
-                              label: 'UPI',
-                              count: deviceProvider.devicesWithUpi,
-                              isSelected: deviceProvider.upiFilter == UpiFilter.withUpi,
-                              onTap: () => deviceProvider.setUpiFilter(UpiFilter.withUpi),
-                              color: const Color(0xFF8B5CF6),
-                            ),
-                            _UltraCompactChip(
-                              label: 'No UPI',
-                              count: deviceProvider.devicesWithoutUpi,
-                              isSelected: deviceProvider.upiFilter == UpiFilter.withoutUpi,
-                              onTap: () => deviceProvider.setUpiFilter(UpiFilter.withoutUpi),
-                              color: const Color(0xFF6B7280),
-                            ),
-                            const SizedBox(width: 4),
-                            _FilterDivider(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
-                            const SizedBox(width: 4),
-
-                            _CategoryIcon(icon: Icons.label_important_rounded, color: const Color(0xFFF59E0B)),
-                            _UltraCompactChip(
-                              label: 'High',
-                              count: deviceProvider.devicesHighBalance,
-                              isSelected: deviceProvider.notePriorityFilter == NotePriorityFilter.highBalance,
-                              onTap: () => deviceProvider.setNotePriorityFilter(NotePriorityFilter.highBalance),
-                              color: const Color(0xFF10B981),
-                            ),
-                            _UltraCompactChip(
-                              label: 'Low',
-                              count: deviceProvider.devicesLowBalance,
-                              isSelected: deviceProvider.notePriorityFilter == NotePriorityFilter.lowBalance,
-                              onTap: () => deviceProvider.setNotePriorityFilter(NotePriorityFilter.lowBalance),
-                              color: const Color(0xFFF59E0B),
-                            ),
-                            
-                            if (deviceProvider.adminFilter != null && 
-                                deviceProvider.appTypes != null && 
-                                deviceProvider.appTypes!.hasAppTypes) ...[
-                              const SizedBox(width: 4),
-                              _FilterDivider(color: const Color(0xFF6366F1).withOpacity(0.3)),
-                              const SizedBox(width: 4),
-                              _CategoryIcon(icon: Icons.apps_rounded, color: const Color(0xFF6366F1)),
-                              ...deviceProvider.appTypes!.appTypes.map((appType) => _UltraCompactChip(
-                                label: appType.displayName,
-                                count: appType.count,
-                                isSelected: deviceProvider.appTypeFilter == appType.appType,
-                                onTap: () => deviceProvider.setAppTypeFilter(appType.appType),
-                                color: Color(appType.colorValue),
-                              )),
-                            ],
-
-                            if (admin?.isSuperAdmin == true) ...[
-                              const SizedBox(width: 4),
-                              _FilterDivider(color: const Color(0xFFEF4444).withOpacity(0.3)),
-                              const SizedBox(width: 4),
-                              _CategoryIcon(icon: Icons.admin_panel_settings_rounded, color: const Color(0xFFEF4444)),
-                              _AdminFilterDropdown(deviceProvider: deviceProvider),
-                            ],
-                            
-                            const SizedBox(width: 12),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.1),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove_rounded, size: 18),
-                          onPressed: () {
-                            setState(() {
-                              if (_filterScale > 0.5) {
-                                _filterScale -= 0.1;
-                              }
-                            });
-                          },
-                          tooltip: 'Zoom Out',
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                        ),
-                        Container(
-                          width: 40,
-                          alignment: Alignment.center,
-                          child: Text(
-                            '${(_filterScale * 100).toInt()}%',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.onSurface,
+                          )
+                        : Container(
+                            height: 32,
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              children: [
+                                _buildFilterChips(deviceProvider, admin),
+                              ],
                             ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add_rounded, size: 18),
-                          onPressed: () {
-                            setState(() {
-                              if (_filterScale < 2.0) {
-                                _filterScale += 0.1;
-                              }
-                            });
-                          },
-                          tooltip: 'Zoom In',
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                        ),
-                      ],
-                    ),
                   ),
+                  if (_supportsZoom)
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.black.withOpacity(0.1),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_rounded, size: 18),
+                            onPressed: () {
+                              setState(() {
+                                if (_filterScale > 0.5) {
+                                  _filterScale -= 0.1;
+                                }
+                              });
+                            },
+                            tooltip: 'Zoom Out',
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          ),
+                          Container(
+                            width: 40,
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${(_filterScale * 100).toInt()}%',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            onPressed: () {
+                              setState(() {
+                                if (_filterScale < 2.0) {
+                                  _filterScale += 0.1;
+                                }
+                              });
+                            },
+                            tooltip: 'Zoom In',
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
 
-            if (deviceProvider.totalDevices > 0)
-              SliverToBoxAdapter(
-                child: ClipRect(
-                  child: Transform.scale(
-                    scale: _filterScale,
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(12 * _filterScale, 0, 12 * _filterScale, 8 * _filterScale),
-                      child: Row(
-                        children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.view_list, size: 14, color: Theme.of(context).colorScheme.primary),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Per Page',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: [
-                                _PageSizeChip(label: '25', selected: deviceProvider.pageSize == 25, onTap: () => deviceProvider.setPageSize(25)),
-                                const SizedBox(width: 4),
-                                _PageSizeChip(label: '50', selected: deviceProvider.pageSize == 50, onTap: () => deviceProvider.setPageSize(50)),
-                                const SizedBox(width: 4),
-                                _PageSizeChip(label: '100', selected: deviceProvider.pageSize == 100, onTap: () => deviceProvider.setPageSize(100)),
-                                const SizedBox(width: 4),
-                                _PageSizeChip(label: '200', selected: deviceProvider.pageSize == 200, onTap: () => deviceProvider.setPageSize(200)),
-                                const SizedBox(width: 4),
-                                _PageSizeChip(label: '500', selected: deviceProvider.pageSize == 500, onTap: () => deviceProvider.setPageSize(500)),
-                                const SizedBox(width: 4),
-                                _PageSizeChip(label: '1000', selected: deviceProvider.pageSize == 1000, onTap: () => deviceProvider.setPageSize(1000)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+            SliverToBoxAdapter(
+              child: _supportsZoom
+                  ? ClipRect(
+                      child: Transform.scale(
+                        scale: _filterScale,
+                        alignment: Alignment.centerLeft,
+                        child: _buildPerPageSection(context, deviceProvider),
                       ),
-                    ),
-                  ),
-                ),
-              ),
+                    )
+                  : _buildPerPageSection(context, deviceProvider),
+            ),
 
             if (deviceProvider.devices.isNotEmpty && !deviceProvider.isLoading)
               SliverToBoxAdapter(
-                child: ClipRect(
-                  child: Transform.scale(
-                    scale: _filterScale,
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(12 * _filterScale, 0, 12 * _filterScale, 12 * _filterScale),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF14B8A6).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF14B8A6).withOpacity(0.3)),
+                child: _supportsZoom
+                    ? ClipRect(
+                        child: Transform.scale(
+                          scale: _filterScale,
+                          alignment: Alignment.centerLeft,
+                          child: _buildDeviceCountInfo(deviceProvider),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF14B8A6)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Showing ${deviceProvider.devices.length} devices (${deviceProvider.devices.where((d) => d.isActive).length} active, ${deviceProvider.devices.where((d) => d.isOnline).length} online)',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF14B8A6)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                      )
+                    : _buildDeviceCountInfo(deviceProvider),
               ),
+
 
             if (deviceProvider.totalDevicesCount > 0)
               SliverToBoxAdapter(
@@ -1277,6 +1110,208 @@ class _DevicesPageState extends State<_DevicesPage> {
       floatingActionButton: deviceProvider.totalDevicesCount > deviceProvider.pageSize
           ? _FloatingPagination(deviceProvider: deviceProvider)
           : null,
+    );
+  }
+
+  Widget _buildFilterChips(DeviceProvider deviceProvider, dynamic admin) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (deviceProvider.statusFilter != null ||
+            deviceProvider.connectionFilter != null ||
+            deviceProvider.upiFilter != null ||
+            deviceProvider.notePriorityFilter != null ||
+            deviceProvider.appTypeFilter != null ||
+            deviceProvider.adminFilter != null) ...[
+          _UltraCompactChip(
+            label: 'Clear',
+            icon: Icons.close_rounded,
+            color: Colors.red,
+            onTap: () => deviceProvider.clearAllFilters(),
+          ),
+          const SizedBox(width: 8),
+          _FilterDivider(color: Colors.red.withOpacity(0.3)),
+          const SizedBox(width: 8),
+        ],
+
+        _CategoryIcon(icon: Icons.check_circle_outline, color: const Color(0xFF10B981)),
+        _UltraCompactChip(
+          label: 'Active',
+          count: deviceProvider.activeDevices,
+          isSelected: deviceProvider.statusFilter == StatusFilter.active,
+          onTap: () => deviceProvider.setStatusFilter(StatusFilter.active),
+          color: const Color(0xFF10B981),
+        ),
+        _UltraCompactChip(
+          label: 'Pending',
+          count: deviceProvider.pendingDevices,
+          isSelected: deviceProvider.statusFilter == StatusFilter.pending,
+          onTap: () => deviceProvider.setStatusFilter(StatusFilter.pending),
+          color: const Color(0xFFF59E0B),
+        ),
+        const SizedBox(width: 4),
+        _FilterDivider(color: const Color(0xFF10B981).withOpacity(0.3)),
+        const SizedBox(width: 4),
+
+        _CategoryIcon(icon: Icons.wifi_rounded, color: const Color(0xFF14B8A6)),
+        _UltraCompactChip(
+          label: 'Online',
+          count: deviceProvider.onlineDevices,
+          isSelected: deviceProvider.connectionFilter == ConnectionFilter.online,
+          onTap: () => deviceProvider.setConnectionFilter(ConnectionFilter.online),
+          color: const Color(0xFF14B8A6),
+        ),
+        _UltraCompactChip(
+          label: 'Offline',
+          count: deviceProvider.offlineDevices,
+          isSelected: deviceProvider.connectionFilter == ConnectionFilter.offline,
+          onTap: () => deviceProvider.setConnectionFilter(ConnectionFilter.offline),
+          color: const Color(0xFFEF4444),
+        ),
+        const SizedBox(width: 4),
+        _FilterDivider(color: const Color(0xFF14B8A6).withOpacity(0.3)),
+        const SizedBox(width: 4),
+
+        _CategoryIcon(icon: Icons.payment_rounded, color: const Color(0xFF8B5CF6)),
+        _UltraCompactChip(
+          label: 'UPI',
+          count: deviceProvider.devicesWithUpi,
+          isSelected: deviceProvider.upiFilter == UpiFilter.withUpi,
+          onTap: () => deviceProvider.setUpiFilter(UpiFilter.withUpi),
+          color: const Color(0xFF8B5CF6),
+        ),
+        _UltraCompactChip(
+          label: 'No UPI',
+          count: deviceProvider.devicesWithoutUpi,
+          isSelected: deviceProvider.upiFilter == UpiFilter.withoutUpi,
+          onTap: () => deviceProvider.setUpiFilter(UpiFilter.withoutUpi),
+          color: const Color(0xFF6B7280),
+        ),
+        const SizedBox(width: 4),
+        _FilterDivider(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+        const SizedBox(width: 4),
+
+        _CategoryIcon(icon: Icons.label_important_rounded, color: const Color(0xFFF59E0B)),
+        _UltraCompactChip(
+          label: 'High',
+          count: deviceProvider.devicesHighBalance,
+          isSelected: deviceProvider.notePriorityFilter == NotePriorityFilter.highBalance,
+          onTap: () => deviceProvider.setNotePriorityFilter(NotePriorityFilter.highBalance),
+          color: const Color(0xFF10B981),
+        ),
+        _UltraCompactChip(
+          label: 'Low',
+          count: deviceProvider.devicesLowBalance,
+          isSelected: deviceProvider.notePriorityFilter == NotePriorityFilter.lowBalance,
+          onTap: () => deviceProvider.setNotePriorityFilter(NotePriorityFilter.lowBalance),
+          color: const Color(0xFFF59E0B),
+        ),
+        
+        if (deviceProvider.adminFilter != null && 
+            deviceProvider.appTypes != null && 
+            deviceProvider.appTypes!.hasAppTypes) ...[
+          const SizedBox(width: 4),
+          _FilterDivider(color: const Color(0xFF6366F1).withOpacity(0.3)),
+          const SizedBox(width: 4),
+          _CategoryIcon(icon: Icons.apps_rounded, color: const Color(0xFF6366F1)),
+          ...deviceProvider.appTypes!.appTypes.map((appType) => _UltraCompactChip(
+            label: appType.displayName,
+            count: appType.count,
+            isSelected: deviceProvider.appTypeFilter == appType.appType,
+            onTap: () => deviceProvider.setAppTypeFilter(appType.appType),
+            color: Color(appType.colorValue),
+          )),
+        ],
+
+        if (admin?.isSuperAdmin == true) ...[
+          const SizedBox(width: 4),
+          _FilterDivider(color: const Color(0xFFEF4444).withOpacity(0.3)),
+          const SizedBox(width: 4),
+          _CategoryIcon(icon: Icons.admin_panel_settings_rounded, color: const Color(0xFFEF4444)),
+          _AdminFilterDropdown(deviceProvider: deviceProvider),
+        ],
+        
+        const SizedBox(width: 12),
+      ],
+    );
+  }
+
+  Widget _buildPerPageSection(BuildContext context, DeviceProvider deviceProvider) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.view_list, size: 14, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Per Page',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _PageSizeChip(label: '25', selected: deviceProvider.pageSize == 25, onTap: () => deviceProvider.setPageSize(25)),
+                  const SizedBox(width: 4),
+                  _PageSizeChip(label: '50', selected: deviceProvider.pageSize == 50, onTap: () => deviceProvider.setPageSize(50)),
+                  const SizedBox(width: 4),
+                  _PageSizeChip(label: '100', selected: deviceProvider.pageSize == 100, onTap: () => deviceProvider.setPageSize(100)),
+                  const SizedBox(width: 4),
+                  _PageSizeChip(label: '200', selected: deviceProvider.pageSize == 200, onTap: () => deviceProvider.setPageSize(200)),
+                  const SizedBox(width: 4),
+                  _PageSizeChip(label: '500', selected: deviceProvider.pageSize == 500, onTap: () => deviceProvider.setPageSize(500)),
+                  const SizedBox(width: 4),
+                  _PageSizeChip(label: '1000', selected: deviceProvider.pageSize == 1000, onTap: () => deviceProvider.setPageSize(1000)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeviceCountInfo(DeviceProvider deviceProvider) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF14B8A6).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF14B8A6).withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF14B8A6)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Showing ${deviceProvider.devices.length} devices (${deviceProvider.devices.where((d) => d.isActive).length} active, ${deviceProvider.devices.where((d) => d.isOnline).length} online)',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF14B8A6)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
