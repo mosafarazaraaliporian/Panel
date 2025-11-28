@@ -628,7 +628,8 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
   }
 
   Widget _buildResultStats(bool isDark) {
-    final List<dynamic> data = _result?['Data'] ?? [];
+    final int totalResults = _getTotalResultsCount();
+    final int databaseCount = _getDatabaseCount();
 
     return Container(
       padding: const EdgeInsets.all(8),
@@ -648,7 +649,7 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
         children: [
           _buildSuccessIcon(),
           const SizedBox(width: 6),
-          Expanded(child: _buildStatsText(data.length, isDark)),
+          Expanded(child: _buildStatsText(totalResults, databaseCount, isDark)),
           IconButton(
             icon: Icon(
               _showJson ? Icons.view_list_rounded : Icons.code_rounded,
@@ -660,6 +661,24 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
         ],
       ),
     );
+  }
+
+  int _getTotalResultsCount() {
+    if (_result == null || _result!['List'] == null) return 0;
+    final list = _result!['List'] as Map<String, dynamic>;
+    int total = 0;
+    list.forEach((dbName, dbData) {
+      if (dbData is Map && dbData['Data'] is List) {
+        total += (dbData['Data'] as List).length;
+      }
+    });
+    return total;
+  }
+
+  int _getDatabaseCount() {
+    if (_result == null || _result!['List'] == null) return 0;
+    final list = _result!['List'] as Map<String, dynamic>;
+    return list.length;
   }
 
   Widget _buildSuccessIcon() {
@@ -677,7 +696,7 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
     );
   }
 
-  Widget _buildStatsText(int resultCount, bool isDark) {
+  Widget _buildStatsText(int resultCount, int databaseCount, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -691,7 +710,7 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
         ),
         const SizedBox(height: 2),
         Text(
-          '$resultCount results found',
+          '$resultCount results from $databaseCount databases',
           style: TextStyle(
             fontSize: 10,
             color: isDark ? Colors.white70 : Colors.black54,
@@ -804,9 +823,7 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
   }
 
   Widget _buildDataCards(bool isDark) {
-    final List<dynamic> data = _result?['Data'] ?? [];
-
-    if (data.isEmpty) {
+    if (_result == null || _result!['List'] == null) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(32),
@@ -815,23 +832,167 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
       );
     }
 
+    final list = _result!['List'] as Map<String, dynamic>;
+    if (list.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text('No data available'),
+        ),
+      );
+    }
+
+    final databases = list.entries.toList();
+    int itemIndex = 0;
+
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: data.length > _maxDisplayItems ? _maxDisplayItems : data.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 6),
-      itemBuilder: (context, index) => _buildDataCard(data[index], index, isDark),
+      itemCount: databases.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final dbEntry = databases[index];
+        final dbName = dbEntry.key;
+        final dbData = dbEntry.value as Map<String, dynamic>;
+        final dataList = dbData['Data'] as List<dynamic>? ?? [];
+        final infoLeak = dbData['InfoLeak'] as String? ?? '';
+        final numOfResults = dbData['NumOfResults'] as int? ?? 0;
+
+        return _buildDatabaseCard(dbName, dataList, infoLeak, numOfResults, isDark, itemIndex);
+      },
     );
   }
 
-  Widget _buildDataCard(dynamic item, int index, bool isDark) {
+  Widget _buildDatabaseCard(
+    String dbName,
+    List<dynamic> dataList,
+    String infoLeak,
+    int numOfResults,
+    bool isDark,
+    int startIndex,
+  ) {
+    final displayItems = dataList.length > _maxDisplayItems ? _maxDisplayItems : dataList.length;
+
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark
             ? const Color(0xFF0F172A).withOpacity(0.5)
             : Colors.white,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.1),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  dbName,
+                  style: const TextStyle(
+                    color: Color(0xFF10B981),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$numOfResults records',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
+          if (infoLeak.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.blue.withOpacity(0.1)
+                    : Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                infoLeak,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          ...List.generate(displayItems, (index) {
+            final item = dataList[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _buildDataCard(item, startIndex + index, isDark),
+            );
+          }),
+          if (dataList.length > _maxDisplayItems)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '... and ${dataList.length - _maxDisplayItems} more records',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataCard(dynamic item, int index, bool isDark) {
+    if (item is! Map) {
+      return Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF0F172A).withOpacity(0.3)
+              : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: SelectableText(
+          item.toString(),
+          style: TextStyle(
+            fontSize: 11,
+            color: isDark ? Colors.white70 : Colors.black87,
+            height: 1.4,
+          ),
+        ),
+      );
+    }
+
+    final Map<String, dynamic> itemMap = item as Map<String, dynamic>;
+    final entries = itemMap.entries.toList();
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF0F172A).withOpacity(0.3)
+            : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: isDark
               ? Colors.white.withOpacity(0.05)
@@ -842,15 +1003,40 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildDataCardBadge(index),
-          const SizedBox(height: 6),
-          SelectableText(
-            item.toString(),
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark ? Colors.white70 : Colors.black87,
-              height: 1.4,
-            ),
-          ),
+          const SizedBox(height: 8),
+          ...entries.map((entry) {
+            final key = entry.key;
+            final value = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      '$key:',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: SelectableText(
+                      value?.toString() ?? '',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.white : Colors.black87,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
