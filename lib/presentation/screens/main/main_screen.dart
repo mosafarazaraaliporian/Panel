@@ -948,6 +948,7 @@ class _DevicesPageState extends State<_DevicesPage> {
                       ),
                     ),
                   ),
+                ),
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
@@ -1066,7 +1067,6 @@ class _DevicesPageState extends State<_DevicesPage> {
                   ),
                 ),
               ),
-            ),
 
             if (deviceProvider.devices.isNotEmpty && !deviceProvider.isLoading)
               SliverToBoxAdapter(
@@ -1100,7 +1100,6 @@ class _DevicesPageState extends State<_DevicesPage> {
                   ),
                 ),
               ),
-            ),
 
             if (deviceProvider.totalDevicesCount > 0)
               SliverToBoxAdapter(
