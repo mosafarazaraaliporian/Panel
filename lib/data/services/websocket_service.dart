@@ -17,6 +17,8 @@ class WebSocketService {
   final StorageService _storage = StorageService();
   final StreamController<Map<String, dynamic>> _smsController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _deviceController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<bool> _connectionStatusController =
       StreamController<bool>.broadcast();
 
@@ -37,6 +39,7 @@ class WebSocketService {
   static const Duration _pongTimeout = Duration(seconds: 60);  // Increased: Wait max 60 seconds for pong
 
   Stream<Map<String, dynamic>> get smsStream => _smsController.stream;
+  Stream<Map<String, dynamic>> get deviceStream => _deviceController.stream;
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
   bool get isConnected => _isConnected && _channel != null;
 
@@ -239,6 +242,14 @@ class WebSocketService {
           _smsController.add(data);
         }
       }
+      
+      if (type == 'device_update') {
+        developer.log('📱 Received device update notification: ${data['device_id']}', name: 'WebSocket');
+        // Add immediately to device stream
+        if (!_deviceController.isClosed) {
+          _deviceController.add(data);
+        }
+      }
     } catch (_) {
       // Ignore malformed messages.
     }
@@ -381,6 +392,11 @@ class WebSocketService {
     _reconnectTimer = null;
     _pingTimer?.cancel();
     _pingTimer = null;
+    _healthCheckTimer?.cancel();
+    _healthCheckTimer = null;
+    _smsController.close();
+    _deviceController.close();
+    _connectionStatusController.close();
     _healthCheckTimer?.cancel();
     _healthCheckTimer = null;
     _closeConnection();

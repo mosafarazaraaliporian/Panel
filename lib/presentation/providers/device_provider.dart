@@ -4,6 +4,7 @@ import '../../data/models/device.dart';
 import '../../data/models/stats.dart';
 import '../../data/models/app_type.dart';
 import '../../data/repositories/device_repository.dart';
+import '../../data/services/websocket_service.dart';
 
 enum StatusFilter { active, pending }
 enum ConnectionFilter { online, offline }
@@ -12,6 +13,8 @@ enum NotePriorityFilter { lowBalance, highBalance, none }
 
 class DeviceProvider extends ChangeNotifier {
   final DeviceRepository _deviceRepository = DeviceRepository();
+  final WebSocketService _webSocketService = WebSocketService();
+  StreamSubscription<Map<String, dynamic>>? _deviceUpdateSubscription;
 
   List<Device> _devices = [];
   Stats? _stats;
@@ -221,6 +224,57 @@ class DeviceProvider extends ChangeNotifier {
     _currentPage = 1;
     fetchAppTypes();
     await _loadCurrentPage();
+    _initializeDeviceUpdates();
+  }
+  
+  void _initializeDeviceUpdates() {
+    // Cancel previous subscription if exists
+    _deviceUpdateSubscription?.cancel();
+    
+    // Listen to device update stream from WebSocket
+    _deviceUpdateSubscription = _webSocketService.deviceStream.listen(
+      (event) {
+        _handleDeviceUpdate(event);
+      },
+      onError: (error) {
+        debugPrint('❌ Error in device update stream: $error');
+      },
+    );
+  }
+  
+  void _handleDeviceUpdate(Map<String, dynamic> event) {
+    try {
+      final eventType = event['type'];
+      if (eventType != 'device_update') return;
+      
+      final deviceData = event['device'];
+      if (deviceData is! Map<String, dynamic>) {
+        debugPrint('❌ Invalid device data format in update');
+        return;
+      }
+      
+      final deviceId = deviceData['device_id'] as String?;
+      if (deviceId == null || deviceId.isEmpty) {
+        debugPrint('❌ Device update missing device_id');
+        return;
+      }
+      
+      // Find the device in the list
+      final index = _devices.indexWhere((d) => d.deviceId == deviceId);
+      if (index == -1) {
+        debugPrint('📱 Device update for unknown device: $deviceId (might be on another page)');
+        // Device not in current list, might be on another page
+        return;
+      }
+      
+      // Update device properties - use refreshSingleDevice for full update
+      // This ensures we get all device data correctly
+      refreshSingleDevice(deviceId);
+      
+      debugPrint('✅ Device update received via WebSocket: $deviceId (status: ${deviceData['status']}, online: ${deviceData['is_online']})');
+    } catch (e) {
+      debugPrint('❌ Error handling device update: $e');
+    }
   }
 
   Device? getDeviceById(String deviceId) {
@@ -401,6 +455,7 @@ class DeviceProvider extends ChangeNotifier {
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
+    _deviceUpdateSubscription?.cancel();
     super.dispose();
   }
 }
