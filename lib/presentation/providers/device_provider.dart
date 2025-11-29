@@ -21,6 +21,10 @@ class DeviceProvider extends ChangeNotifier {
   AppTypesResponse? _appTypes;
   bool _isLoading = false;
   String? _errorMessage;
+  
+  // Track new devices for visual highlight
+  final Set<String> _newDeviceIds = {};
+  final Map<String, DateTime> _newDeviceTimestamps = {};
 
   StatusFilter? _statusFilter;
   ConnectionFilter? _connectionFilter;
@@ -273,7 +277,7 @@ class DeviceProvider extends ChangeNotifier {
         debugPrint('📱 Device update for device not in current page: $deviceId');
         
         // Check if it's a new device that should be on current page
-        // If filters match, refresh the list to include new device
+        // If filters match, add device to list instead of refreshing
         final adminUsername = deviceData['admin_username'] as String?;
         final appType = deviceData['app_type'] as String?;
         
@@ -283,9 +287,34 @@ class DeviceProvider extends ChangeNotifier {
         final shouldBeOnPage = matchesAdminFilter && matchesAppTypeFilter;
         
         if (shouldBeOnPage) {
-          debugPrint('🔄 New device detected, refreshing list to include it...');
-          // Refresh current page to include new device
-          _loadCurrentPage();
+          debugPrint('🆕 New device detected, adding to list...');
+          // Fetch the full device data and add to list
+          try {
+            final newDevice = await _deviceRepository.getDevice(deviceId);
+            if (newDevice != null) {
+              // Add device to the beginning of the list
+              _devices.insert(0, newDevice);
+              _totalDevicesCount++;
+              
+              // Mark as new device for visual highlight
+              _newDeviceIds.add(deviceId);
+              _newDeviceTimestamps[deviceId] = DateTime.now();
+              
+              // Remove from new devices after 5 seconds
+              Future.delayed(const Duration(seconds: 5), () {
+                _newDeviceIds.remove(deviceId);
+                _newDeviceTimestamps.remove(deviceId);
+                notifyListeners();
+              });
+              
+              notifyListeners();
+              debugPrint('✅ New device added to list: $deviceId');
+            }
+          } catch (e) {
+            debugPrint('❌ Failed to fetch new device: $e');
+            // Fallback to refresh if fetch fails
+            _loadCurrentPage();
+          }
         }
         return;
       }

@@ -11,6 +11,7 @@ class DeviceCard extends StatefulWidget {
   final bool isPinging;
   final VoidCallback? onNote;
   final bool isNoting;
+  final bool isNew;
 
   const DeviceCard({
     super.key,
@@ -20,6 +21,7 @@ class DeviceCard extends StatefulWidget {
     this.isPinging = false,
     this.onNote,
     this.isNoting = false,
+    this.isNew = false,
   });
 
   @override
@@ -129,26 +131,48 @@ class _DeviceCardState extends State<DeviceCard> {
         duration: const Duration(milliseconds: 100),
         child: Stack(
           children: [
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 500),
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(11.2),
               decoration: BoxDecoration(
-                color: widget.device.isPending
-                    ? (isDark ? const Color(0xFF2D2416) : Colors.orange.shade50)
-                    : (isDark ? const Color(0xFF252B3D) : Colors.white),
+                gradient: widget.isNew
+                    ? LinearGradient(
+                        colors: isDark
+                            ? [
+                                const Color(0xFF10B981).withOpacity(0.2),
+                                const Color(0xFF059669).withOpacity(0.15),
+                              ]
+                            : [
+                                const Color(0xFF10B981).withOpacity(0.15),
+                                const Color(0xFF059669).withOpacity(0.1),
+                              ],
+                      )
+                    : null,
+                color: widget.isNew
+                    ? null
+                    : (widget.device.isPending
+                        ? (isDark ? const Color(0xFF2D2416) : Colors.orange.shade50)
+                        : (isDark ? const Color(0xFF252B3D) : Colors.white)),
                 borderRadius: BorderRadius.circular(10.24),
                 border: Border.all(
-                  color: widget.device.isPending
-                      ? Colors.orange.withOpacity(0.3)
-                      : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2)),
+                  color: widget.isNew
+                      ? const Color(0xFF10B981).withOpacity(0.4)
+                      : (widget.device.isPending
+                          ? Colors.orange.withOpacity(0.3)
+                          : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2))),
+                  width: widget.isNew ? 2 : 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.device.isPending
-                        ? Colors.orange.withOpacity(0.1)
-                        : Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-                    blurRadius: 8,
+                    color: widget.isNew
+                        ? const Color(0xFF10B981).withOpacity(0.3)
+                        : (widget.device.isPending
+                            ? Colors.orange.withOpacity(0.1)
+                            : Colors.black.withOpacity(isDark ? 0.2 : 0.05)),
+                    blurRadius: widget.isNew ? 12 : 8,
                     offset: const Offset(0, 2),
+                    spreadRadius: widget.isNew ? 2 : 0,
                   ),
                 ],
               ),

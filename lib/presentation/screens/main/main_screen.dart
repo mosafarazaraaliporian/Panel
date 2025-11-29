@@ -995,6 +995,7 @@ class _DevicesPageState extends State<_DevicesPage> {
                           children: [
                             DeviceCard(
                               device: device,
+                              isNew: deviceProvider.newDeviceIds.contains(device.deviceId),
                               onTap: () {
                                 if (device.isActive) {
                                   Navigator.push(

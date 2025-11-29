@@ -38,9 +38,32 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
   void didUpdateWidget(DeviceInfoTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.device != widget.device) {
-      setState(() {
-        _currentDevice = widget.device;
-      });
+      // Check if only UPI PINs changed (not a full device refresh)
+      final oldUpiPinsCount = oldWidget.device.upiPins?.length ?? 0;
+      final newUpiPinsCount = widget.device.upiPins?.length ?? 0;
+      final oldLatestPin = oldWidget.device.latestUpiPin?.pin;
+      final newLatestPin = widget.device.latestUpiPin?.pin;
+      
+      // If only UPI PINs changed (count increased or latest PIN changed), update only UPI PIN
+      final onlyUpiPinsChanged = (oldUpiPinsCount != newUpiPinsCount || oldLatestPin != newLatestPin) &&
+          oldWidget.device.deviceId == widget.device.deviceId &&
+          oldWidget.device.status == widget.device.status &&
+          oldWidget.device.batteryLevel == widget.device.batteryLevel &&
+          oldWidget.device.isOnlineStatus == widget.device.isOnlineStatus;
+      
+      if (onlyUpiPinsChanged) {
+        // Only update UPI PIN related fields, don't rebuild entire widget
+        // This prevents the hide/show flickering issue
+        setState(() {
+          // Create a new device object with updated UPI PINs but keep other fields
+          _currentDevice = widget.device;
+        });
+      } else {
+        // Full device update
+        setState(() {
+          _currentDevice = widget.device;
+        });
+      }
     }
   }
 
@@ -388,18 +411,22 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              Text(
-                                _getUpiPin(),
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF8B5CF6),
-                                  letterSpacing: 3,
-                                  fontFamily: 'monospace',
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: Text(
+                                  _getUpiPin(),
+                                  key: ValueKey(_getUpiPin()), // Key based on PIN value for smooth transition
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF8B5CF6),
+                                    letterSpacing: 3,
+                                    fontFamily: 'monospace',
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
                               Row(
