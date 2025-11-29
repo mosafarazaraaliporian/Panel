@@ -47,6 +47,7 @@ class DeviceProvider extends ChangeNotifier {
   AppTypesResponse? get appTypes => _appTypes;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  Set<String> get newDeviceIds => _newDeviceIds;
   StatusFilter? get statusFilter => _statusFilter;
   ConnectionFilter? get connectionFilter => _connectionFilter;
   UpiFilter? get upiFilter => _upiFilter;
@@ -252,7 +253,7 @@ class DeviceProvider extends ChangeNotifier {
     });
   }
   
-  void _handleDeviceUpdate(Map<String, dynamic> event) {
+  Future<void> _handleDeviceUpdate(Map<String, dynamic> event) async {
     try {
       final eventType = event['type'];
       if (eventType != 'device_update') return;
