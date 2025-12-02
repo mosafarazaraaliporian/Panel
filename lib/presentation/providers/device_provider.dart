@@ -229,6 +229,7 @@ class DeviceProvider extends ChangeNotifier {
     _currentPage = 1;
     // Clear old data before fetching new data to prevent showing stale cache
     _devices = [];
+    _totalDevicesCount = 0;
     _errorMessage = null;
     notifyListeners();
     fetchAppTypes();

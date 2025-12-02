@@ -44,6 +44,8 @@ class DeviceRepository {
       final queryParams = <String, dynamic>{
         'skip': skip,
         'limit': limit,
+        // Add timestamp to prevent browser/HTTP cache
+        '_t': DateTime.now().millisecondsSinceEpoch,
       };
       
       if (appType != null && appType.isNotEmpty) {

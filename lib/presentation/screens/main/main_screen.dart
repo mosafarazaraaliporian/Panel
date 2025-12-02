@@ -31,6 +31,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
   late AnimationController _navAnimController;
   late Animation<double> _navAnimation;
   bool _hasInitialized = false;
+  bool _hasRefreshedOnOpen = false;
   DateTime? _lastRefreshTime;
 
   bool get _supportsCollapsibleNav =>
@@ -49,14 +50,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
       curve: Curves.easeInOutCubic,
     );
     _navAnimController.forward();
-
-    // Force refresh when app opens to get fresh data
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshDevices(force: true);
-    });
   }
 
   void _refreshDevices({bool force = false}) {
+    if (!mounted) return;
+    
     // Prevent too frequent refreshes (debounce: max once per 500ms)
     final now = DateTime.now();
     if (!force && _lastRefreshTime != null) {
@@ -96,8 +94,16 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Note: Removed auto-refresh here to prevent excessive refreshes
-    // Refresh is handled in initState (on app open) and didChangeAppLifecycleState (on resume)
+    // Force refresh when MainScreen is first built to get fresh data from server
+    // This ensures refresh happens after context is available
+    if (!_hasRefreshedOnOpen && mounted) {
+      _hasRefreshedOnOpen = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _refreshDevices(force: true);
+        }
+      });
+    }
   }
 
   @override

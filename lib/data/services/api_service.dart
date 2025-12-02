@@ -93,7 +93,16 @@ class ApiService {
         Map<String, dynamic>? queryParameters,
       }) async {
     try {
-      return await _dio.get(path, queryParameters: queryParameters);
+      final options = Options(
+        // Disable cache for GET requests
+        extra: {'noCache': true},
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      );
+      return await _dio.get(path, queryParameters: queryParameters, options: options);
     } catch (e) {
       rethrow;
     }
