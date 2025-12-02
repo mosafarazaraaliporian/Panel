@@ -60,34 +60,15 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       
       if (updatedDevice != null) {
         // Check if device was actually updated (compare key fields)
-        // NOTE: UPI PIN updates are NOT included - they should only update via manual refresh
         final isUpdated = updatedDevice.isOnline != _currentDevice.isOnline ||
             updatedDevice.status != _currentDevice.status ||
             updatedDevice.batteryLevel != _currentDevice.batteryLevel;
-            // Removed UPI PIN checks - UPI PIN should only update via manual refresh
         
         if (isUpdated && mounted) {
-          // Device was updated in DeviceProvider via WebSocket, sync our local state
-          // Preserve UPI PIN data from current device (WebSocket updates don't include UPI PIN)
-          final hasCurrentUpi = _currentDevice.hasUpi && 
-              (_currentDevice.hasUpiPins != null && _currentDevice.hasUpiPins!.isNotEmpty) ||
-              (_currentDevice.upiPin != null && _currentDevice.upiPin!.isNotEmpty);
-          final hasNewUpi = updatedDevice.hasUpi && 
-              (updatedDevice.hasUpiPins != null && updatedDevice.hasUpiPins!.isNotEmpty) ||
-              (updatedDevice.upiPin != null && updatedDevice.upiPin!.isNotEmpty);
-          
+          // Device was updated in DeviceProvider, sync our local state
           setState(() {
-            // If current device has UPI PIN and new device doesn't (from WebSocket), don't update
-            // This preserves UPI PIN data until manual refresh
-            if (hasCurrentUpi && !hasNewUpi) {
-              // Don't update device if UPI PIN would be lost
-              // WebSocket updates don't include UPI PIN, so we preserve current device's UPI PIN
-              return;
-            } else {
-              // Normal update (either both have UPI or neither has it, or new has it)
-              _currentDevice = updatedDevice;
-              _refreshKey++;
-            }
+            _currentDevice = updatedDevice;
+            _refreshKey++;
           });
         }
       }

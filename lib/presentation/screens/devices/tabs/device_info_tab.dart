@@ -38,30 +38,8 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
   void didUpdateWidget(DeviceInfoTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.device != widget.device) {
-      // Update device logic:
-      // - If new device has UPI PIN, always accept it (could be from refresh or new data)
-      // - If new device doesn't have UPI PIN but current has it, preserve current UPI PIN
-      //   (this prevents losing UPI PIN data from WebSocket updates that don't include UPI PIN)
-      final hasCurrentUpi = _currentDevice.hasUpi && 
-          (_currentDevice.hasUpiPins || (_currentDevice.upiPin != null && _currentDevice.upiPin!.isNotEmpty));
-      final hasNewUpi = widget.device.hasUpi && 
-          (widget.device.hasUpiPins || (widget.device.upiPin != null && widget.device.upiPin!.isNotEmpty));
-      
       setState(() {
-        // If new device has UPI PIN, always update (could be from refresh with new UPI PIN)
-        if (hasNewUpi) {
-          _currentDevice = widget.device;
-        } 
-        // If current has UPI PIN but new doesn't, preserve current (likely WebSocket update without UPI PIN)
-        else if (hasCurrentUpi && !hasNewUpi) {
-          // Don't update device if UPI PIN would be lost
-          // This preserves UPI PIN data until manual refresh
-          return;
-        } 
-        // Neither has UPI PIN, normal update
-        else {
-          _currentDevice = widget.device;
-        }
+        _currentDevice = widget.device;
       });
     }
   }
