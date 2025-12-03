@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../data/models/device.dart';
 import '../../../data/repositories/device_repository.dart';
 import '../../../presentation/providers/device_provider.dart';
+import '../../../core/utils/popup_helper.dart';
 import 'tabs/device_info_tab.dart';
 import 'tabs/device_sms_tab.dart';
 import 'tabs/device_contacts_tab.dart';
@@ -317,7 +318,13 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              if (kIsWeb && isInPopupWindow()) {
+                closePopupWindow();
+              } else {
+                Navigator.pop(context);
+              }
+            },
           ),
         ),
         body: const Center(
@@ -354,7 +361,13 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back_rounded),
-                  onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              if (kIsWeb && isInPopupWindow()) {
+                closePopupWindow();
+              } else {
+                Navigator.pop(context);
+              }
+            },
                   padding: EdgeInsets.zero,
                 ),
               ),

@@ -1,11 +1,17 @@
 import 'dart:js_interop';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-@JS('window')
-external JSObject get _window;
-
 @JS('window.open')
 external JSObject? _windowOpen(String url, String target, String features);
+
+@JS('window.screen.width')
+external int get _screenWidth;
+
+@JS('window.screen.height')
+external int get _screenHeight;
+
+@JS('window.close')
+external void _windowClose();
 
 void openDevicePopup(String deviceId) {
   if (!kIsWeb) return;
@@ -16,9 +22,8 @@ void openDevicePopup(String deviceId) {
   const width = 414;
   const height = 896;
   
-  final screen = _window['screen'] as JSObject?;
-  final screenWidth = (screen?['width'] as JSNumber?)?.toDartInt ?? 1920;
-  final screenHeight = (screen?['height'] as JSNumber?)?.toDartInt ?? 1080;
+  final screenWidth = _screenWidth;
+  final screenHeight = _screenHeight;
   
   final left = ((screenWidth - width) / 2).round();
   final top = ((screenHeight - height) / 2).round();
@@ -26,4 +31,20 @@ void openDevicePopup(String deviceId) {
   final features = 'width=$width,height=$height,left=$left,top=$top,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no';
   
   _windowOpen(deviceUrl, '_blank', features);
+}
+
+void closePopupWindow() {
+  if (!kIsWeb) return;
+  _windowClose();
+}
+
+bool isInPopupWindow() {
+  if (!kIsWeb) return false;
+  try {
+    @JS('window.opener')
+    external JSObject? get _windowOpener;
+    return _windowOpener != null;
+  } catch (e) {
+    return false;
+  }
 }
