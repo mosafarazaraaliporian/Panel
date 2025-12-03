@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'dart:html' as html if (dart.library.html);
 import 'data/services/storage_service.dart';
 import 'data/services/api_service.dart';
 import 'presentation/providers/auth_provider.dart';
@@ -11,6 +12,8 @@ import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/admin_provider.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
+import 'presentation/screens/main/main_screen.dart';
+import 'presentation/screens/devices/device_detail_screen.dart';
 import 'core/theme/app_theme.dart';
 
 import 'package:firebase_core/firebase_core.dart'
@@ -75,6 +78,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   StreamSubscription<bool>? _sessionExpiredSubscription;
+  StreamSubscription<html.Event>? _hashChangeSubscription;
 
   @override
   void initState() {
@@ -83,6 +87,51 @@ class _MyAppState extends State<MyApp> {
     _sessionExpiredSubscription = ApiService().sessionExpiredStream.listen((_) {
       _handleSessionExpired();
     });
+
+    // Listen to hash changes for web routing
+    if (kIsWeb) {
+      _hashChangeSubscription = html.window.onHashChange.listen((_) {
+        _handleHashChange();
+      });
+      
+      // Check initial hash on startup
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleHashChange();
+      });
+    }
+  }
+
+  void _handleHashChange() {
+    if (!kIsWeb) return;
+    
+    final hash = html.window.location.hash;
+    if (hash.startsWith('#/device/')) {
+      final deviceId = hash.substring('#/device/'.length);
+      final navigator = navigatorKey.currentState;
+      if (navigator != null) {
+        // Check if we're already on this device detail screen
+        final currentRoute = navigatorKey.currentContext != null 
+            ? ModalRoute.of(navigatorKey.currentContext!)
+            : null;
+        
+        if (currentRoute?.settings.name != '/device/$deviceId') {
+          // Navigate to device detail screen
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => DeviceDetailScreen.fromRoute(deviceId),
+              settings: RouteSettings(name: '/device/$deviceId'),
+            ),
+            (route) => route.isFirst, // Keep the first route (splash/login/main)
+          );
+        }
+      }
+    } else if (hash.isEmpty || hash == '#') {
+      // If hash is cleared, go back to main screen
+      final navigator = navigatorKey.currentState;
+      if (navigator != null && navigator.canPop()) {
+        navigator.popUntil((route) => route.isFirst);
+      }
+    }
   }
 
   void _handleSessionExpired() {
@@ -126,6 +175,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     _sessionExpiredSubscription?.cancel();
+    _hashChangeSubscription?.cancel();
     super.dispose();
   }
 
@@ -147,6 +197,18 @@ class _MyAppState extends State<MyApp> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
+            onGenerateRoute: (settings) {
+              // Handle device detail route: /device/:deviceId
+              if (settings.name?.startsWith('/device/') == true) {
+                final deviceId = settings.name!.substring('/device/'.length);
+                return MaterialPageRoute(
+                  builder: (_) => DeviceDetailScreen.fromRoute(deviceId),
+                  settings: settings,
+                );
+              }
+              
+              return null;
+            },
 
             builder: (context, child) {
               final isDark = Theme.of(context).brightness == Brightness.dark;

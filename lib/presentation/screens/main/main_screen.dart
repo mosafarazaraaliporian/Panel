@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:html' as html if (dart.library.html);
 import '../../providers/auth_provider.dart';
 import '../../providers/device_provider.dart';
 import '../../providers/admin_provider.dart';
@@ -1044,12 +1045,22 @@ class _DevicesPageState extends State<_DevicesPage> {
                               isNew: deviceProvider.newDeviceIds.contains(device.deviceId),
                               onTap: () {
                                 if (device.isActive) {
+                                  // Update hash for web
+                                  if (kIsWeb) {
+                                    html.window.location.hash = '/device/${device.deviceId}';
+                                  }
+                                  
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => DeviceDetailScreen(device: device),
+                                      settings: RouteSettings(name: '/device/${device.deviceId}'),
                                     ),
                                   ).then((_) {
+                                    // Clear hash when returning
+                                    if (kIsWeb) {
+                                      html.window.location.hash = '';
+                                    }
                                     // Auto refresh when returning from device detail screen
                                     final deviceProvider = context.read<DeviceProvider>();
                                     deviceProvider.fetchDevices();
