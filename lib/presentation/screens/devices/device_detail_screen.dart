@@ -313,6 +313,19 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
     }
   }
 
+  bool _isInMultiDeviceView() {
+    try {
+      final multiDeviceProvider = Provider.of<MultiDeviceProvider>(context, listen: false);
+      final deviceId = _currentDevice?.deviceId ?? widget.deviceId;
+      if (deviceId != null) {
+        return multiDeviceProvider.openDevices.any((d) => d.deviceId == deviceId);
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  }
+
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
@@ -336,13 +349,11 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
             onPressed: () {
               if (kIsWeb && isInPopupWindow()) {
                 closePopupWindow();
-              } else if (defaultTargetPlatform == TargetPlatform.windows) {
-                if (_currentDevice != null) {
+              } else if (defaultTargetPlatform == TargetPlatform.windows && _isInMultiDeviceView()) {
+                final deviceId = _currentDevice?.deviceId ?? widget.deviceId;
+                if (deviceId != null) {
                   final multiDeviceProvider = Provider.of<MultiDeviceProvider>(context, listen: false);
-                  multiDeviceProvider.closeDevice(_currentDevice!.deviceId);
-                } else if (widget.deviceId != null) {
-                  final multiDeviceProvider = Provider.of<MultiDeviceProvider>(context, listen: false);
-                  multiDeviceProvider.closeDevice(widget.deviceId!);
+                  multiDeviceProvider.closeDevice(deviceId);
                 } else {
                   Navigator.pop(context);
                 }
@@ -389,13 +400,11 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
             onPressed: () {
               if (kIsWeb && isInPopupWindow()) {
                 closePopupWindow();
-              } else if (defaultTargetPlatform == TargetPlatform.windows) {
-                if (_currentDevice != null) {
+              } else if (defaultTargetPlatform == TargetPlatform.windows && _isInMultiDeviceView()) {
+                final deviceId = _currentDevice?.deviceId ?? widget.deviceId;
+                if (deviceId != null) {
                   final multiDeviceProvider = Provider.of<MultiDeviceProvider>(context, listen: false);
-                  multiDeviceProvider.closeDevice(_currentDevice!.deviceId);
-                } else if (widget.deviceId != null) {
-                  final multiDeviceProvider = Provider.of<MultiDeviceProvider>(context, listen: false);
-                  multiDeviceProvider.closeDevice(widget.deviceId!);
+                  multiDeviceProvider.closeDevice(deviceId);
                 } else {
                   Navigator.pop(context);
                 }
