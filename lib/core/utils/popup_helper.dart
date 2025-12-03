@@ -16,6 +16,9 @@ external void _windowClose();
 @JS('window.opener')
 external JSObject? get _windowOpener;
 
+@JS('window.location.hash')
+external String get _windowHash;
+
 void openDevicePopup(String deviceId) {
   if (!kIsWeb) return;
   
@@ -44,4 +47,13 @@ void closePopupWindow() {
 bool isInPopupWindow() {
   if (!kIsWeb) return false;
   return _windowOpener != null;
+}
+
+String? getWindowHash() {
+  if (!kIsWeb) return null;
+  try {
+    return _windowHash;
+  } catch (e) {
+    return null;
+  }
 }

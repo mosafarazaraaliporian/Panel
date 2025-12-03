@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../auth/login_screen.dart';
 import '../main/main_screen.dart';
+import '../devices/device_detail_screen.dart';
 import '../../../data/services/api_service.dart';
+import '../../../core/utils/popup_helper.dart';
 import 'dart:math' as math;
+import 'dart:js_interop';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -104,6 +108,27 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) {
         final authProvider = context.read<AuthProvider>();
 
+        if (kIsWeb && isInPopupWindow()) {
+          final hash = getWindowHash();
+          if (hash != null && hash.startsWith('#/device/')) {
+            final deviceId = hash.substring('#/device/'.length);
+            if (authProvider.isAuthenticated && deviceId.isNotEmpty) {
+              Navigator.of(context).pushReplacement(
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      DeviceDetailScreen.fromDeviceId(deviceId),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                  transitionDuration: const Duration(milliseconds: 500),
+                ),
+              );
+              return;
+            }
+          }
+        }
+
         if (authProvider.isAuthenticated) {
           Navigator.of(context).pushReplacement(
             PageRouteBuilder(
@@ -136,6 +161,7 @@ class _SplashScreenState extends State<SplashScreen>
       }
     }
   }
+
 
   void _showErrorDialog(String title, String message) {
     showDialog(
