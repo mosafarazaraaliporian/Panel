@@ -31,6 +31,11 @@
 
   <title>pannel</title>
   <link rel="manifest" href="manifest.json">
+  <script>
+    window.openDevicePopup = function(url, features) {
+      return window.open(url, '_blank', features);
+    };
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

