@@ -8,7 +8,6 @@ import '../devices/device_detail_screen.dart';
 import '../../../data/services/api_service.dart';
 import '../../../core/utils/popup_helper.dart';
 import 'dart:math' as math;
-import 'dart:js_interop';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
