@@ -1,5 +1,5 @@
-import 'dart:js' as js;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html if (dart.library.html);
 
 void openDevicePopup(String deviceId) {
   if (!kIsWeb) return;
@@ -7,16 +7,16 @@ void openDevicePopup(String deviceId) {
   final currentUrl = Uri.base.toString().split('#')[0];
   final deviceUrl = '$currentUrl#/device/$deviceId';
   
-  final width = 414;
-  final height = 896;
+  const width = 414;
+  const height = 896;
   
-  final screenWidth = js.context['window']['screen']['width'] as int? ?? 1920;
-  final screenHeight = js.context['window']['screen']['height'] as int? ?? 1080;
+  final screenWidth = html.window.screen?.width ?? 1920;
+  final screenHeight = html.window.screen?.height ?? 1080;
   
   final left = ((screenWidth - width) / 2).round();
   final top = ((screenHeight - height) / 2).round();
   
   final features = 'width=$width,height=$height,left=$left,top=$top,resizable=yes,scrollbars=yes,toolbar=no,menubar=no';
   
-  js.context.callMethod('open', [deviceUrl, '_blank', features]);
+  html.window.open(deviceUrl, '_blank', features);
 }

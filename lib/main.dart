@@ -15,7 +15,7 @@ import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/main/main_screen.dart';
 import 'presentation/screens/devices/device_detail_screen.dart';
 import 'core/theme/app_theme.dart';
-import 'dart:js' as js;
+import 'dart:html' as html if (dart.library.html);
 
 import 'package:firebase_core/firebase_core.dart'
     if (dart.library.html) 'core/utils/firebase_stub.dart' as firebase_import;
@@ -94,12 +94,11 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _setupHashListener() {
-    js.context['window'].callMethod('addEventListener', [
-      'hashchange',
-      js.allowInterop((_) {
-        _handleHashChange();
-      })
-    ]);
+    if (!kIsWeb) return;
+    
+    html.window.onHashChange.listen((_) {
+      _handleHashChange();
+    });
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _handleHashChange();
@@ -109,7 +108,7 @@ class _MyAppState extends State<MyApp> {
   void _handleHashChange() {
     if (!kIsWeb) return;
     
-    final hash = js.context['window']['location']['hash'] as String? ?? '';
+    final hash = html.window.location.hash;
     if (hash.startsWith('#/device/')) {
       final deviceId = hash.substring('#/device/'.length);
       final navigator = navigatorKey.currentState;
