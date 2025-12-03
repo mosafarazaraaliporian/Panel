@@ -1,8 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-
-// Conditional import: use dart:html for web, html_stub for other platforms
-import 'dart:html' as html if (dart.library.html) 'dart:html';
-import 'html_stub.dart' if (!dart.library.html) 'html_stub.dart' as html;
+import 'html_import.dart' as html;
 
 class WindowService {
   static final WindowService _instance = WindowService._internal();

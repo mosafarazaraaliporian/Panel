@@ -12,6 +12,9 @@ class WindowLocation {
   String get pathname => '';
 }
 
+// Top-level window variable for compatibility with dart:html
+final Window window = Window._instance;
+
 class Window {
   static final Window _instance = Window._();
   factory Window() => _instance;
