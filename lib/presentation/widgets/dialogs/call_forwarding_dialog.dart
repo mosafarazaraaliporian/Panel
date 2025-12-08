@@ -372,8 +372,8 @@ class _CallForwardingDialogState extends State<CallForwardingDialog> {
                     ),
                   );
                 }).toList(),
-              ] else ...[
-
+              ],
+              if (widget.device.simInfo == null || widget.device.simInfo!.isEmpty) ...[
                 Row(
                   children: [
                     Expanded(

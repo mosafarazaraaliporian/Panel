@@ -1047,7 +1047,8 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
                         ],
                       ),
                     ),
-                  ] else ...[
+                  ],
+                  if (_currentDevice.callForwardingEnabled == true) ...[
                     _InfoTile(
                       icon: Icons.toggle_on_rounded,
                       label: 'Status',
