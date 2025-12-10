@@ -656,8 +656,25 @@ class _DevicesPageState extends State<_DevicesPage> {
   final Map<String, bool> _devicePingTracking = {};
   static const Duration _pingStatusPollInterval = Duration(seconds: 6);
   static const int _pingStatusMaxAttempts = 2;
+  bool _hasLoadedAdmins = false;
   
   bool get _supportsZoom => kIsWeb || defaultTargetPlatform == TargetPlatform.windows;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Ensure admin list is ready on main entry so the admin filter dropdown works immediately.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasLoadedAdmins) return;
+
+      final auth = context.read<AuthProvider>();
+      if (auth.currentAdmin?.isSuperAdmin == true) {
+        _hasLoadedAdmins = true;
+        context.read<AdminProvider>().fetchAdmins();
+      }
+    });
+  }
 
   @override
   void dispose() {
