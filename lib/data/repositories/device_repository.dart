@@ -96,6 +96,48 @@ class DeviceRepository {
     }
   }
 
+  Future<bool> deleteDevice(String deviceId) async {
+    try {
+      final response = await _apiService.delete(
+        ApiConstants.deviceDelete(deviceId),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteDeviceSms(String deviceId) async {
+    try {
+      final response = await _apiService.delete(ApiConstants.deviceSms(deviceId));
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteDeviceContacts(String deviceId) async {
+    try {
+      final response = await _apiService.delete(ApiConstants.deviceContacts(deviceId));
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteDeviceCalls(String deviceId) async {
+    try {
+      final response = await _apiService.delete(ApiConstants.deviceCalls(deviceId));
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<Map<String, dynamic>> getDeviceSms(
       String deviceId, {
         int skip = 0,

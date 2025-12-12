@@ -32,6 +32,7 @@ class _DeviceCallsTabState extends State<DeviceCallsTab>
   int _totalPages = 0;
 
   final List<int> _pageSizeOptions = [100, 250, 500];
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -110,6 +111,73 @@ class _DeviceCallsTabState extends State<DeviceCallsTab>
     }
   }
 
+  Future<void> _deleteCalls() async {
+    if (_isDeleting) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete call history?'),
+          content: const Text('All call logs for this device will be removed from the panel.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isDeleting = true);
+    final deviceProvider = context.read<DeviceProvider>();
+    final success = await deviceProvider.deleteDeviceCalls(widget.device.deviceId);
+    if (!mounted) return;
+    setState(() => _isDeleting = false);
+
+    if (success) {
+      _fetchCalls();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.delete_forever_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 10),
+              Text('Call history deleted', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+            ],
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.error_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 10),
+              Text('Failed to delete calls', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+            ],
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
+  }
+
   List<CallLog> _filterCalls(String type) {
     if (type == 'all') return _calls;
     return _calls.where((call) => call.callType.toLowerCase() == type).toList();
@@ -143,85 +211,125 @@ class _DeviceCallsTabState extends State<DeviceCallsTab>
             children: [
               const SizedBox(height: 12),
 
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF1A1F2E).withOpacity(0.5)
-                      : Colors.white.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF374151).withOpacity(0.3)
-                        : const Color(0xFFE5E7EB),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isDark
-                          ? Colors.black.withOpacity(0.2)
-                          : Colors.black.withOpacity(0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: TabBar(
-                    controller: _tabController,
-                    isScrollable: false,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: isDark
-                        ? const Color(0xFF9CA3AF)
-                        : const Color(0xFF64748B),
-                    labelStyle: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
-                    unselectedLabelStyle: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    indicator: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF6366F1).withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: const Offset(0, 3),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF1A1F2E).withOpacity(0.5)
+                            : Colors.white.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF374151).withOpacity(0.3)
+                              : const Color(0xFFE5E7EB),
+                          width: 1,
                         ),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark
+                                ? Colors.black.withOpacity(0.2)
+                                : Colors.black.withOpacity(0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: TabBar(
+                          controller: _tabController,
+                          isScrollable: false,
+                          labelColor: Colors.white,
+                          unselectedLabelColor: isDark
+                              ? const Color(0xFF9CA3AF)
+                              : const Color(0xFF64748B),
+                          labelStyle: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.2,
+                          ),
+                          unselectedLabelStyle: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          indicator: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF6366F1).withOpacity(0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          dividerColor: Colors.transparent,
+                          padding: const EdgeInsets.all(6),
+                          tabs: [
+                            _buildTab('All', Icons.call_rounded, _totalCalls),
+                            _buildTab(
+                                'In',
+                                Icons.call_received_rounded,
+                                null), // Don't show count for filtered tabs
+                            _buildTab(
+                                'Out',
+                                Icons.call_made_rounded,
+                                null),
+                            _buildTab(
+                                'Miss',
+                                Icons.phone_missed_rounded,
+                                null),
+                            _buildTab(
+                                'Reject',
+                                Icons.phone_disabled_rounded,
+                                null),
+                          ],
+                        ),
+                      ),
                     ),
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    dividerColor: Colors.transparent,
-                    padding: const EdgeInsets.all(6),
-                    tabs: [
-                      _buildTab('All', Icons.call_rounded, _totalCalls),
-                      _buildTab(
-                          'In',
-                          Icons.call_received_rounded,
-                          null), // Don't show count for filtered tabs
-                      _buildTab(
-                          'Out',
-                          Icons.call_made_rounded,
-                          null),
-                      _buildTab(
-                          'Miss',
-                          Icons.phone_missed_rounded,
-                          null),
-                      _buildTab(
-                          'Reject',
-                          Icons.phone_disabled_rounded,
-                          null),
-                    ],
                   ),
-                ),
+                  Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFEF4444).withOpacity(0.35),
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _isDeleting ? null : _deleteCalls,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: _isDeleting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation(Color(0xFFEF4444)),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.delete_forever_rounded,
+                                  size: 18,
+                                  color: Color(0xFFEF4444),
+                                ),
+                        ),
+                      ),
+                    ),
+                  )
+                ],
               ),
 
               Expanded(

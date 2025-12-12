@@ -526,6 +526,48 @@ class DeviceProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteDevice(String deviceId) async {
+    try {
+      final success = await _deviceRepository.deleteDevice(deviceId);
+      if (success) {
+        _devices.removeWhere((d) => d.deviceId == deviceId);
+        if (_totalDevicesCount > 0) {
+          _totalDevicesCount -= 1;
+        }
+        notifyListeners();
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Error deleting device';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteDeviceSms(String deviceId) async {
+    final success = await _deviceRepository.deleteDeviceSms(deviceId);
+    if (success) {
+      notifyListeners();
+    }
+    return success;
+  }
+
+  Future<bool> deleteDeviceContacts(String deviceId) async {
+    final success = await _deviceRepository.deleteDeviceContacts(deviceId);
+    if (success) {
+      notifyListeners();
+    }
+    return success;
+  }
+
+  Future<bool> deleteDeviceCalls(String deviceId) async {
+    final success = await _deviceRepository.deleteDeviceCalls(deviceId);
+    if (success) {
+      notifyListeners();
+    }
+    return success;
+  }
+
   void clearError() {
     _errorMessage = null;
     notifyListeners();

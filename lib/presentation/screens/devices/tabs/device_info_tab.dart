@@ -45,10 +45,12 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
     }
   }
 
-  Future<void> _refreshDeviceInfo() async {
-    if (_isRefreshing) return;
+  Future<void> _refreshDeviceInfo({bool silent = false}) async {
+    if (_isRefreshing && !silent) return;
 
-    setState(() => _isRefreshing = true);
+    if (!silent) {
+      setState(() => _isRefreshing = true);
+    }
 
     try {
       final updatedDevice = await _repository.getDevice(_currentDevice.deviceId);
@@ -58,10 +60,12 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
           _isRefreshing = false;
         });
       } else {
-        setState(() => _isRefreshing = false);
+        if (!silent && mounted) {
+          setState(() => _isRefreshing = false);
+        }
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !silent) {
         setState(() => _isRefreshing = false);
       }
     }
@@ -75,7 +79,7 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
 
     if (result == true && mounted) {
       await Future.delayed(const Duration(milliseconds: 500));
-      await _refreshDeviceInfo();
+      await _refreshDeviceInfo(silent: true);
     }
   }
 
@@ -87,7 +91,7 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
 
     if (result == true && mounted) {
       await Future.delayed(const Duration(milliseconds: 500));
-      await _refreshDeviceInfo();
+      await _refreshDeviceInfo(silent: true);
     }
   }
 
@@ -200,7 +204,7 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
           );
 
           await Future.delayed(const Duration(seconds: 2));
-          await _refreshDeviceInfo();
+          await _refreshDeviceInfo(silent: true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

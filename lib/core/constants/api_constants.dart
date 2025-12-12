@@ -19,6 +19,7 @@ class ApiConstants {
   static const String leakLookup = '/api/tools/leak-lookup';
 
   static String deviceDetail(String deviceId) => '/api/devices/$deviceId';
+  static String deviceDelete(String deviceId) => '/api/devices/$deviceId';
   static String deviceSms(String deviceId) => '/api/devices/$deviceId/sms';
   static String deviceContacts(String deviceId) => '/api/devices/$deviceId/contacts';
   static String deviceCalls(String deviceId) => '/api/devices/$deviceId/calls';

@@ -40,6 +40,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   bool _isRefreshing = false;
   bool _isPinging = false;
   bool _isLoadingDevice = false;
+  bool _isDeleting = false;
   int _refreshKey = 0;
   Timer? _autoRefreshTimer;
   static const Duration _autoRefreshInterval = Duration(minutes: 1);
@@ -56,7 +57,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       _startAutoRefresh();
       _listenToDeviceUpdates();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _refreshDevice(showSnackbar: false);
+        _refreshDevice(showSnackbar: false, silent: true);
       });
     } else if (widget.deviceId != null) {
       _isLoadingDevice = true;
@@ -86,7 +87,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         _startAutoRefresh();
         _listenToDeviceUpdates();
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _refreshDevice(showSnackbar: false);
+          _refreshDevice(showSnackbar: false, silent: true);
         });
       }
     } catch (e) {
@@ -169,14 +170,16 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         _autoRefreshTimer?.cancel();
         return;
       }
-      _refreshDevice(showSnackbar: false);
+      _refreshDevice(showSnackbar: false, silent: true);
     });
   }
 
-  Future<void> _refreshDevice({bool showSnackbar = true}) async {
+  Future<void> _refreshDevice({bool showSnackbar = true, bool silent = false}) async {
     if (_isRefreshing || _currentDevice == null) return;
 
-    setState(() => _isRefreshing = true);
+    if (!silent) {
+      setState(() => _isRefreshing = true);
+    }
 
     try {
       final updatedDevice = await _repository.getDevice(_currentDevice!.deviceId);
@@ -184,10 +187,12 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         setState(() {
           _currentDevice = updatedDevice;
           _isRefreshing = false;
-          _refreshKey++;
+          if (!silent) {
+            _refreshKey++;
+          }
         });
         
-        if (mounted && showSnackbar) {
+        if (mounted && showSnackbar && !silent) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -320,6 +325,91 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
     }
   }
 
+  Future<void> _confirmDeleteDevice() async {
+    if (_currentDevice == null || _isDeleting) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete device?'),
+          content: const Text('Device will be removed from the list but history stays.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isDeleting = true);
+
+    final deviceProvider = context.read<DeviceProvider>();
+
+    final success = await deviceProvider.deleteDevice(_currentDevice!.deviceId);
+
+    if (!mounted) return;
+
+    setState(() => _isDeleting = false);
+
+    if (success) {
+      final multiDeviceProvider = Provider.of<MultiDeviceProvider>(context, listen: false);
+      multiDeviceProvider.closeDevice(_currentDevice!.deviceId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.delete_forever_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 10),
+              Text(
+                'Device deleted',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.error_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 10),
+              Text(
+                'Failed to delete device',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+    }
+  }
+
   bool _isInMultiDeviceView() {
     try {
       final multiDeviceProvider = Provider.of<MultiDeviceProvider>(context, listen: false);
@@ -423,6 +513,41 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                 ),
               ),
               actions: [
+                Container(
+                  margin: const EdgeInsets.only(right: 6.4, top: 6.4, bottom: 8),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: (_isDeleting || _isRefreshing || _isPinging) ? null : _confirmDeleteDevice,
+                      borderRadius: BorderRadius.circular(10.24),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444).withOpacity(isDark ? 0.18 : 0.12),
+                          borderRadius: BorderRadius.circular(10.24),
+                          border: Border.all(
+                            color: const Color(0xFFEF4444).withOpacity(0.4),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: _isDeleting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF4444)),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.delete_forever_rounded,
+                                size: 18,
+                                color: Color(0xFFEF4444),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
                 Container(
                   margin: const EdgeInsets.only(right: 6.4, top: 6.4, bottom: 8),
                   child: Material(
