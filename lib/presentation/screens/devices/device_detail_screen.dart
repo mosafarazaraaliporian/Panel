@@ -44,6 +44,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   int _refreshKey = 0;
   Timer? _autoRefreshTimer;
   static const Duration _autoRefreshInterval = Duration(minutes: 1);
+  static const Duration _webRefreshInterval = Duration(minutes: 3);
   static const Duration _popupRefreshInterval = Duration(seconds: 5);
   StreamSubscription? _deviceUpdateSubscription;
 
@@ -125,6 +126,9 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   
   void _listenToDeviceUpdates() {
     if (_currentDevice == null) return;
+
+    // On web, skip periodic header updates to reduce UI load
+    if (kIsWeb) return;
     
     _deviceUpdateSubscription?.cancel();
     _deviceUpdateSubscription = Stream.periodic(const Duration(seconds: 1)).listen((_) {
@@ -160,10 +164,16 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   void _startAutoRefresh() {
     _autoRefreshTimer?.cancel();
     
-    // If in popup window, refresh every 5 seconds, otherwise every minute
-    final refreshInterval = (kIsWeb && isInPopupWindow()) 
-        ? _popupRefreshInterval 
-        : _autoRefreshInterval;
+    Duration refreshInterval;
+    if (kIsWeb) {
+      if (isInPopupWindow()) {
+        refreshInterval = _popupRefreshInterval;
+      } else {
+        refreshInterval = _webRefreshInterval;
+      }
+    } else {
+      refreshInterval = _autoRefreshInterval;
+    }
     
     _autoRefreshTimer = Timer.periodic(refreshInterval, (_) {
       if (!mounted) {
