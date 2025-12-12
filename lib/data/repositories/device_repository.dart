@@ -17,7 +17,15 @@ class DeviceRepository {
     if (code >= 200 && code < 300) {
       if (response.data == null) return true;
       if (response.data is Map<String, dynamic>) {
-        return response.data['success'] == true;
+        final data = response.data as Map<String, dynamic>;
+        if (data['success'] != true) return false;
+        if (data.containsKey('deleted_count')) {
+          final deletedCount = data['deleted_count'];
+          if (deletedCount is int) {
+            return deletedCount > 0;
+          }
+        }
+        return true;
       }
       return true;
     }
