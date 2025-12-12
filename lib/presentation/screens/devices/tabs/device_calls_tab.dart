@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../data/models/device.dart';
 import '../../../../data/models/call_log.dart';
 import '../../../../data/repositories/device_repository.dart';
 import '../../../../core/utils/date_utils.dart' as utils;
 import '../../../widgets/common/empty_state.dart';
+import '../../../providers/device_provider.dart';
 
 class DeviceCallsTab extends StatefulWidget {
   final Device device;
