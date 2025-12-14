@@ -346,6 +346,20 @@ class DeviceProvider extends ChangeNotifier {
     }
   }
 
+  /// Checks if a device has meaningful changes that require UI update
+  bool _hasDeviceChanged(Device oldDevice, Device newDevice) {
+    return oldDevice.isOnline != newDevice.isOnline ||
+        oldDevice.isActive != newDevice.isActive ||
+        oldDevice.status != newDevice.status ||
+        oldDevice.batteryLevel != newDevice.batteryLevel ||
+        oldDevice.lastPing != newDevice.lastPing ||
+        oldDevice.model != newDevice.model ||
+        oldDevice.stats.totalSms != newDevice.stats.totalSms ||
+        oldDevice.stats.totalContacts != newDevice.stats.totalContacts ||
+        oldDevice.noteMessage != newDevice.noteMessage ||
+        oldDevice.notePriority != newDevice.notePriority;
+  }
+
   Future<void> refreshSingleDevice(String deviceId) async {
     try {
       final now = DateTime.now();
@@ -365,12 +379,12 @@ class DeviceProvider extends ChangeNotifier {
         final index = _devices.indexWhere((d) => d.deviceId == deviceId);
         if (index != -1) {
           final oldDevice = _devices[index];
-          _devices[index] = updatedDevice;
           
-          if (oldDevice.isOnline != updatedDevice.isOnline || 
-              oldDevice.status != updatedDevice.status ||
-              oldDevice.isActive != updatedDevice.isActive) {
+          // Only update and notify if device actually changed
+          if (_hasDeviceChanged(oldDevice, updatedDevice)) {
+            _devices[index] = updatedDevice;
             notifyListeners();
+            debugPrint('✅ Device updated via headless refresh: $deviceId');
           }
         }
       }
@@ -493,6 +507,104 @@ class DeviceProvider extends ChangeNotifier {
       debugPrint('✅ Auto-refresh completed: ${_devices.length} devices');
     } catch (e) {
       debugPrint('❌ Auto-refresh error: $e');
+    }
+  }
+
+  /// Headless refresh: updates only changed devices without showing loading state
+  /// This prevents UI blocking and only updates parts that have actually changed
+  Future<void> headlessRefresh() async {
+    try {
+      final skip = (_currentPage - 1) * _pageSize;
+      
+      // Get fresh data from API
+      final result = await _deviceRepository.getDevices(
+        skip: skip,
+        limit: _pageSize,
+        appType: _appTypeFilter,
+        adminUsername: _adminFilter,
+      );
+
+      final newDevices = result['devices'] as List<Device>;
+      final newTotalCount = result['total'] as int;
+      
+      // Create a map of existing devices by ID for quick lookup
+      final existingDevicesMap = <String, Device>{};
+      for (final device in _devices) {
+        existingDevicesMap[device.deviceId] = device;
+      }
+
+      bool hasChanges = false;
+      final List<Device> updatedDevices = [];
+      final Set<String> currentDeviceIds = <String>{};
+
+      // Process devices in API order and detect changes
+      for (final newDevice in newDevices) {
+        currentDeviceIds.add(newDevice.deviceId);
+        final existingDevice = existingDevicesMap[newDevice.deviceId];
+        
+        if (existingDevice == null) {
+          // New device - mark as new for visual highlight
+          _newDeviceIds.add(newDevice.deviceId);
+          _newDeviceTimestamps[newDevice.deviceId] = DateTime.now();
+          
+          // Remove from new devices after 5 seconds
+          Future.delayed(const Duration(seconds: 5), () {
+            _newDeviceIds.remove(newDevice.deviceId);
+            _newDeviceTimestamps.remove(newDevice.deviceId);
+            notifyListeners();
+          });
+          
+          hasChanges = true;
+        } else {
+          // Existing device - check if it changed
+          if (_hasDeviceChanged(existingDevice, newDevice)) {
+            hasChanges = true;
+          }
+        }
+        
+        // Always add to updated list (preserving API order)
+        updatedDevices.add(newDevice);
+      }
+
+      // Remove new device markers for devices that are no longer in the list
+      _newDeviceIds.removeWhere((id) => !currentDeviceIds.contains(id));
+      _newDeviceTimestamps.removeWhere((id, _) => !currentDeviceIds.contains(id));
+
+      // Check if total count changed
+      if (_totalDevicesCount != newTotalCount) {
+        hasChanges = true;
+        _totalDevicesCount = newTotalCount;
+      }
+
+      // Only update the list if there were actual changes
+      if (hasChanges) {
+        // Update device list while preserving API order
+        _devices = updatedDevices;
+        notifyListeners();
+        debugPrint('✅ Headless refresh completed: ${_devices.length} devices (changes detected)');
+      } else {
+        debugPrint('✅ Headless refresh completed: no changes detected');
+      }
+
+      // Update stats in background (non-blocking) - always check for updates
+      _deviceRepository.getStats(adminUsername: _adminFilter).then((newStats) {
+        final currentStatsJson = _stats?.toJson().toString();
+        final newStatsJson = newStats?.toJson().toString();
+        if (currentStatsJson != newStatsJson) {
+          _stats = newStats;
+          notifyListeners();
+          debugPrint('✅ Stats updated in headless refresh');
+        }
+      }).catchError((e) {
+        debugPrint('❌ Error updating stats in headless refresh: $e');
+      });
+
+      // Update app types in background
+      fetchAppTypes();
+
+    } catch (e) {
+      debugPrint('❌ Headless refresh error: $e');
+      // Don't set error state in headless mode to avoid UI disruption
     }
   }
 

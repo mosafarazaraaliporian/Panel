@@ -80,7 +80,16 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
     _lastRefreshTime = now;
 
     final deviceProvider = context.read<DeviceProvider>();
-    deviceProvider.fetchDevices();
+    
+    // Use headless refresh for automatic updates (no UI blocking)
+    // Only use full fetchDevices() on initial load or when forced
+    if (force || deviceProvider.totalDevicesCount == 0) {
+      // First time or forced refresh - use full fetch
+      deviceProvider.fetchDevices();
+    } else {
+      // Automatic refresh - use headless mode (no loading, only updates changes)
+      deviceProvider.headlessRefresh();
+    }
     
     if (!_hasInitialized) {
       final webSocketService = WebSocketService();
