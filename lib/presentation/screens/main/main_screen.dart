@@ -1238,9 +1238,9 @@ class _DevicesPageState extends State<_DevicesPage> {
                                           builder: (_) => DeviceDetailScreen(device: device),
                                         ),
                                       ).then((_) {
-                                        // Auto refresh when returning from device detail screen
+                                        // Headless refresh when returning from device detail screen (no UI blocking)
                                         final deviceProvider = context.read<DeviceProvider>();
-                                        deviceProvider.fetchDevices();
+                                        deviceProvider.headlessRefresh();
                                       });
                                     } else {
                                       Navigator.push(
