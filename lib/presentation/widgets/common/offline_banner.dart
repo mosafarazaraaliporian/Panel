@@ -43,7 +43,7 @@ class OfflineBanner extends StatelessWidget {
                         ),
                         SizedBox(width: 8),
                         Text(
-                          'Device Offline',
+                          'Your device is offline',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13,
