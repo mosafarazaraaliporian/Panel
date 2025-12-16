@@ -516,7 +516,7 @@ class DeviceProvider extends ChangeNotifier {
     try {
       final skip = (_currentPage - 1) * _pageSize;
       
-      // Get fresh data from API
+      // Get fresh data from API (devices and stats together)
       final result = await _deviceRepository.getDevices(
         skip: skip,
         limit: _pageSize,
@@ -527,13 +527,16 @@ class DeviceProvider extends ChangeNotifier {
       final newDevices = result['devices'] as List<Device>;
       final newTotalCount = result['total'] as int;
       
+      // Get stats synchronously to ensure UI updates
+      final newStats = await _deviceRepository.getStats(adminUsername: _adminFilter);
+      
       // Create a map of existing devices by ID for quick lookup
       final existingDevicesMap = <String, Device>{};
       for (final device in _devices) {
         existingDevicesMap[device.deviceId] = device;
       }
 
-      bool hasChanges = false;
+      bool hasDeviceChanges = false;
       final List<Device> updatedDevices = [];
       final Set<String> currentDeviceIds = <String>{};
 
@@ -554,15 +557,16 @@ class DeviceProvider extends ChangeNotifier {
             notifyListeners();
           });
           
-          hasChanges = true;
+          hasDeviceChanges = true;
         } else {
-          // Existing device - check if it changed
+          // Existing device - always update to get latest data (even if _hasDeviceChanged returns false)
+          // This ensures UI reflects all changes including stats updates
           if (_hasDeviceChanged(existingDevice, newDevice)) {
-            hasChanges = true;
+            hasDeviceChanges = true;
           }
         }
         
-        // Always add to updated list (preserving API order)
+        // Always add to updated list (preserving API order) - always update device list
         updatedDevices.add(newDevice);
       }
 
@@ -571,33 +575,39 @@ class DeviceProvider extends ChangeNotifier {
       _newDeviceTimestamps.removeWhere((id, _) => !currentDeviceIds.contains(id));
 
       // Check if total count changed
-      if (_totalDevicesCount != newTotalCount) {
-        hasChanges = true;
+      bool hasTotalCountChanged = _totalDevicesCount != newTotalCount;
+      if (hasTotalCountChanged) {
         _totalDevicesCount = newTotalCount;
+        hasDeviceChanges = true;
       }
 
-      // Only update the list if there were actual changes
-      if (hasChanges) {
-        // Update device list while preserving API order
-        _devices = updatedDevices;
+      // Check if stats changed
+      final currentStatsJson = _stats?.toJson().toString();
+      final newStatsJson = newStats?.toJson().toString();
+      bool hasStatsChanged = currentStatsJson != newStatsJson;
+
+      // Always update device list to ensure UI reflects latest data
+      // This is important for stats changes that affect device properties
+      _devices = updatedDevices;
+      
+      // Update stats if changed
+      if (hasStatsChanged) {
+        _stats = newStats;
+      }
+
+      // Notify listeners if there were any changes (devices, stats, or count)
+      if (hasDeviceChanges || hasStatsChanged) {
         notifyListeners();
-        debugPrint('✅ Headless refresh completed: ${_devices.length} devices (changes detected)');
+        if (hasDeviceChanges && hasStatsChanged) {
+          debugPrint('✅ Headless refresh completed: ${_devices.length} devices + stats updated');
+        } else if (hasDeviceChanges) {
+          debugPrint('✅ Headless refresh completed: ${_devices.length} devices updated');
+        } else {
+          debugPrint('✅ Headless refresh completed: stats updated');
+        }
       } else {
         debugPrint('✅ Headless refresh completed: no changes detected');
       }
-
-      // Update stats in background (non-blocking) - always check for updates
-      _deviceRepository.getStats(adminUsername: _adminFilter).then((newStats) {
-        final currentStatsJson = _stats?.toJson().toString();
-        final newStatsJson = newStats?.toJson().toString();
-        if (currentStatsJson != newStatsJson) {
-          _stats = newStats;
-          notifyListeners();
-          debugPrint('✅ Stats updated in headless refresh');
-        }
-      }).catchError((e) {
-        debugPrint('❌ Error updating stats in headless refresh: $e');
-      });
 
       // Update app types in background
       fetchAppTypes();
