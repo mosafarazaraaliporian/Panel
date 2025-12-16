@@ -43,7 +43,7 @@ class OfflineBanner extends StatelessWidget {
                         ),
                         SizedBox(width: 8),
                         Text(
-                          'دستگاه آفلاین است',
+                          'Device Offline',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13,
