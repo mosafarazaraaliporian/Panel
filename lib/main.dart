@@ -11,6 +11,8 @@ import 'presentation/providers/device_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/admin_provider.dart';
 import 'presentation/providers/multi_device_provider.dart';
+import 'presentation/providers/connectivity_provider.dart';
+import 'presentation/widgets/common/offline_banner.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/main/main_screen.dart';
@@ -168,6 +170,7 @@ class _MyAppState extends State<MyApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme()),
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DeviceProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
@@ -214,7 +217,7 @@ class _MyAppState extends State<MyApp> {
                 ),
               );
 
-              return child!;
+              return OfflineBanner(child: child!);
             },
 
             home: const SplashScreen(),
