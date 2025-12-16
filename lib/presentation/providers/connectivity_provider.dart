@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:io' if (dart.library.html) 'dart:html';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import '../../data/services/api_service.dart';
+import '../../core/utils/dns_lookup.dart' if (dart.library.html) '../../core/utils/dns_lookup_stub.dart';
 
 class ConnectivityProvider extends ChangeNotifier {
   final Connectivity _connectivity = Connectivity();
@@ -73,12 +73,7 @@ class ConnectivityProvider extends ChangeNotifier {
       } else {
         // Mobile/Desktop: Use DNS lookup (faster and doesn't require server)
         try {
-          final result = await InternetAddress.lookup('google.com')
-              .timeout(
-                const Duration(seconds: 5),
-                onTimeout: () => throw TimeoutException('Connection timeout'),
-              );
-          isConnected = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+          isConnected = await performDnsLookup('google.com');
         } catch (e) {
           isConnected = false;
         }
