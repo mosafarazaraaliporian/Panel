@@ -44,10 +44,6 @@ class _DeviceCardState extends State<DeviceCard> {
   @override
   void initState() {
     super.initState();
-    // Debug: Log appUninstalled status
-    if (widget.device.appUninstalled) {
-      debugPrint('🔴 [DeviceCard] Device ${widget.device.deviceId} is marked as uninstalled');
-    }
   }
 
   Color _getNoteColor() {
@@ -155,58 +151,40 @@ class _DeviceCardState extends State<DeviceCard> {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(11.2),
               decoration: BoxDecoration(
-                gradient: (widget.device.appUninstalled)
+                gradient: widget.isNew
                     ? LinearGradient(
                         colors: isDark
                             ? [
-                                Colors.red.shade900.withOpacity(0.3),
-                                Colors.red.shade800.withOpacity(0.2),
+                                const Color(0xFF10B981).withOpacity(0.2),
+                                const Color(0xFF059669).withOpacity(0.15),
                               ]
                             : [
-                                Colors.red.shade50,
-                                Colors.red.shade100.withOpacity(0.5),
+                                const Color(0xFF10B981).withOpacity(0.15),
+                                const Color(0xFF059669).withOpacity(0.1),
                               ],
                       )
-                    : (widget.isNew
-                        ? LinearGradient(
-                            colors: isDark
-                                ? [
-                                    const Color(0xFF10B981).withOpacity(0.2),
-                                    const Color(0xFF059669).withOpacity(0.15),
-                                  ]
-                                : [
-                                    const Color(0xFF10B981).withOpacity(0.15),
-                                    const Color(0xFF059669).withOpacity(0.1),
-                                  ],
-                          )
-                        : null),
-                color: (widget.device.appUninstalled)
+                    : null,
+                color: widget.isNew
                     ? null
-                    : (widget.isNew
-                        ? null
-                        : (widget.device.isPending
-                            ? (isDark ? const Color(0xFF2D2416) : Colors.orange.shade50)
-                            : (isDark ? const Color(0xFF252B3D) : Colors.white))),
+                    : (widget.device.isPending
+                        ? (isDark ? const Color(0xFF2D2416) : Colors.orange.shade50)
+                        : (isDark ? const Color(0xFF252B3D) : Colors.white)),
                 borderRadius: BorderRadius.circular(10.24),
                 border: Border.all(
-                  color: (widget.device.appUninstalled)
-                      ? Colors.red.shade600.withOpacity(0.6)
-                      : (widget.isNew
-                          ? const Color(0xFF10B981).withOpacity(0.4)
-                          : (widget.device.isPending
-                              ? Colors.orange.withOpacity(0.3)
-                              : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2)))),
-                  width: (widget.device.appUninstalled) ? 2 : (widget.isNew ? 2 : 1),
+                  color: widget.isNew
+                      ? const Color(0xFF10B981).withOpacity(0.4)
+                      : (widget.device.isPending
+                          ? Colors.orange.withOpacity(0.3)
+                          : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2))),
+                  width: widget.isNew ? 2 : 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: (widget.device.appUninstalled)
-                        ? Colors.red.shade600.withOpacity(0.4)
-                        : (widget.isNew
-                            ? const Color(0xFF10B981).withOpacity(0.3)
-                            : (widget.device.isPending
-                                ? Colors.orange.withOpacity(0.1)
-                                : Colors.black.withOpacity(isDark ? 0.2 : 0.05))),
+                    color: widget.isNew
+                        ? const Color(0xFF10B981).withOpacity(0.3)
+                        : (widget.device.isPending
+                            ? Colors.orange.withOpacity(0.1)
+                            : Colors.black.withOpacity(isDark ? 0.2 : 0.05))),
                     blurRadius: widget.isNew ? 12 : 8,
                     offset: const Offset(0, 2),
                     spreadRadius: widget.isNew ? 2 : 0,
@@ -222,20 +200,16 @@ class _DeviceCardState extends State<DeviceCard> {
                     padding: const EdgeInsets.all(6.4),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: (widget.device.appUninstalled)
-                            ? [Colors.red.shade600, Colors.red.shade800]  // قرمز برای حذف شده
-                            : (widget.device.isOnline
-                                ? [Colors.green.shade400, Colors.teal.shade400]
-                                : [Colors.red.shade400, Colors.pink.shade400]),
+                        colors: widget.device.isOnline
+                            ? [Colors.green.shade400, Colors.teal.shade400]
+                            : [Colors.red.shade400, Colors.pink.shade400],
                       ),
                       borderRadius: BorderRadius.circular(6.4),
                     ),
                       child: Icon(
-                      (widget.device.appUninstalled)
-                          ? Icons.delete_outline_rounded
-                          : (widget.device.isOnline
-                              ? Icons.smartphone_rounded
-                              : Icons.phone_android_outlined),
+                      widget.device.isOnline
+                          ? Icons.smartphone_rounded
+                          : Icons.phone_android_outlined,
                       color: Colors.white,
                       size: 14.4,
                     ),
@@ -281,18 +255,6 @@ class _DeviceCardState extends State<DeviceCard> {
                                 ),
                                 child: const Text(
                                   '⏳',
-                                  style: TextStyle(fontSize: 6.4, color: Colors.white),
-                                ),
-                              ),
-                            if (widget.device.appUninstalled)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4.8, vertical: 1.6),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade600,
-                                  borderRadius: BorderRadius.circular(3.84),
-                                ),
-                                child: const Text(
-                                  '🗑️',
                                   style: TextStyle(fontSize: 6.4, color: Colors.white),
                                 ),
                               ),
