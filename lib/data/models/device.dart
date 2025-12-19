@@ -345,6 +345,9 @@ class Device {
   final String? adminNotePriority;
   final String? adminNoteMessage;
   final DateTime? adminNoteCreatedAt;
+  
+  final bool? appUninstalled;
+  final DateTime? appUninstalledAt;
 
   Device({
     required this.deviceId,
@@ -407,6 +410,8 @@ class Device {
     this.adminNotePriority,
     this.adminNoteMessage,
     this.adminNoteCreatedAt,
+    this.appUninstalled,
+    this.appUninstalledAt,
   });
 
   factory Device.fromJson(Map<String, dynamic> json) {
@@ -498,6 +503,10 @@ class Device {
       adminNoteMessage: json['admin_note_message'],
       adminNoteCreatedAt: json['admin_note_created_at'] != null
           ? _parseTimestamp(json['admin_note_created_at'])
+          : null,
+      appUninstalled: json['app_uninstalled'] ?? false,
+      appUninstalledAt: json['app_uninstalled_at'] != null
+          ? _parseTimestamp(json['app_uninstalled_at'])
           : null,
     );
   }
