@@ -11,6 +11,7 @@ import 'presentation/providers/device_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/admin_provider.dart';
 import 'presentation/providers/multi_device_provider.dart';
+import 'presentation/providers/leak_lookup_provider.dart';
 import 'presentation/providers/connectivity_provider.dart';
 import 'presentation/widgets/common/offline_banner.dart';
 import 'presentation/screens/splash/splash_screen.dart';
@@ -175,6 +176,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => DeviceProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => MultiDeviceProvider()),
+        ChangeNotifierProvider(create: (_) => LeakLookupProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

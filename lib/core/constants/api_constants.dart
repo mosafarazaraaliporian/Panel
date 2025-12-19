@@ -17,6 +17,7 @@ class ApiConstants {
   static const String adminStats = '/admin/activities/stats';
 
   static const String leakLookup = '/api/tools/leak-lookup';
+  static const String pingAllDevices = '/api/devices/ping-all';
 
   static String deviceDetail(String deviceId) => '/api/devices/$deviceId';
   static String deviceDelete(String deviceId) => '/api/devices/$deviceId';

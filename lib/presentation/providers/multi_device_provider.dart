@@ -10,6 +10,8 @@ class MultiDeviceProvider extends ChangeNotifier {
   bool get hasOpenDevices => _openDevices.isNotEmpty;
 
   void openDevice(Device device) {
+    // Headless refresh: update device silently before opening
+    // This prevents UI blocking when opening device
     if (!_openDevices.any((d) => d.deviceId == device.deviceId)) {
       _openDevices.add(device);
       _activeIndex = _openDevices.length - 1;

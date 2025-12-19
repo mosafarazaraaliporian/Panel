@@ -21,6 +21,8 @@ import '../../widgets/dialogs/note_dialog.dart';
 import '../../../data/services/websocket_service.dart';
 import '../../widgets/multi_device_view.dart';
 import '../../providers/multi_device_provider.dart';
+import '../../widgets/leak_lookup_view.dart';
+import '../../providers/leak_lookup_provider.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -241,43 +243,90 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
                       child: pages[_selectedIndex],
                     ),
                     if (kIsWeb)
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Consumer<MultiDeviceProvider>(
-                          builder: (context, provider, _) {
-                            if (!provider.hasOpenDevices) {
-                              return const SizedBox.shrink();
-                            }
-                            return const MultiDeviceView();
-                          },
-                        ),
+                      Consumer<MultiDeviceProvider>(
+                        builder: (context, multiProvider, _) {
+                          return Consumer<LeakLookupProvider>(
+                            builder: (context, leakProvider, _) {
+                              double multiHeight = multiProvider.hasOpenDevices ? 400 : 0;
+                              double leakHeight = leakProvider.isOpen ? 400 : 0;
+                              
+                              return Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (leakProvider.isOpen)
+                                      SizedBox(
+                                        height: leakHeight,
+                                        child: const LeakLookupView(),
+                                      ),
+                                    if (multiProvider.hasOpenDevices)
+                                      SizedBox(
+                                        height: multiHeight,
+                                        child: const MultiDeviceView(),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
                   ],
                 ),
               ),
               if (defaultTargetPlatform == TargetPlatform.windows)
-                Consumer<MultiDeviceProvider>(
-                  builder: (context, provider, _) {
-                    if (!provider.hasOpenDevices) {
-                      return const SizedBox.shrink();
-                    }
-                    return Container(
-                      width: 600,
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const MultiDeviceView(),
+                Consumer<LeakLookupProvider>(
+                  builder: (context, leakProvider, _) {
+                    return Consumer<MultiDeviceProvider>(
+                      builder: (context, multiProvider, _) {
+                        if (!leakProvider.isOpen && !multiProvider.hasOpenDevices) {
+                          return const SizedBox.shrink();
+                        }
+                        
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (leakProvider.isOpen)
+                              Container(
+                                width: 600,
+                                margin: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const LeakLookupView(),
+                              ),
+                            if (multiProvider.hasOpenDevices)
+                              Container(
+                                width: 600,
+                                margin: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const MultiDeviceView(),
+                              ),
+                          ],
+                        );
+                      },
                     );
                   },
                 ),
@@ -414,6 +463,17 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
                   selectedIndex: _selectedIndex,
                   onTap: () => setState(() => _selectedIndex = 2),
                 ),
+                const SizedBox(height: 6),
+                _NavItem(
+                  icon: Icons.shield_outlined,
+                  label: 'Leak Lookup',
+                  index: -1,
+                  collapsed: collapsed,
+                  selectedIndex: -1,
+                  onTap: () {
+                    context.read<LeakLookupProvider>().toggle();
+                  },
+                ),
                 if (admin?.isSuperAdmin == true) ...[
                   const SizedBox(height: 6),
                   _NavItem(
@@ -491,6 +551,12 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: (index) {
+            // Handle special index for Leak Lookup (index 3)
+            if (index == 3 && admin?.isSuperAdmin != true) {
+              context.read<LeakLookupProvider>().toggle();
+              return;
+            }
+            
             if (index != _selectedIndex) {
               setState(() => _selectedIndex = index);
               if (index == 0) {
@@ -526,10 +592,15 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
               activeIcon: Icon(Icons.settings_rounded),
               label: 'Settings',
             ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.shield_outlined),
+              activeIcon: Icon(Icons.shield_rounded),
+              label: 'Tools',
+            ),
             if (admin?.isSuperAdmin == true)
               const BottomNavigationBarItem(
-                icon: Icon(Icons.shield_outlined),
-                activeIcon: Icon(Icons.shield_rounded),
+                icon: Icon(Icons.admin_panel_settings_outlined),
+                activeIcon: Icon(Icons.admin_panel_settings_rounded),
                 label: 'Admin',
               ),
           ],
@@ -951,14 +1022,14 @@ class _DevicesPageState extends State<_DevicesPage> {
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                colors: [Color(0xFF10B981), Color(0xFF059669)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFF59E0B).withOpacity(0.4),
+                  color: const Color(0xFF10B981).withOpacity(0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -968,11 +1039,7 @@ class _DevicesPageState extends State<_DevicesPage> {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const LeakLookupScreen(),
-                    ),
-                  );
+                  context.read<LeakLookupProvider>().toggle();
                 },
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
@@ -981,7 +1048,7 @@ class _DevicesPageState extends State<_DevicesPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
-                        Icons.search_rounded,
+                        Icons.shield_outlined,
                         color: Colors.white,
                         size: 18,
                       ),
@@ -1051,11 +1118,133 @@ class _DevicesPageState extends State<_DevicesPage> {
                   SliverToBoxAdapter(
                     child: Column(
                       children: [
+                        // Ping All Button - Prominent placement
+                        Consumer<DeviceProvider>(
+                          builder: (context, deviceProvider, _) {
+                            return Container(
+                              margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF3B82F6), Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF3B82F6).withOpacity(0.4),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: deviceProvider.isPingingAll ? null : () async {
+                                    try {
+                                      await deviceProvider.pingAllDevices();
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: const [
+                                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                                SizedBox(width: 12),
+                                                Text(
+                                                  'Ping sent to all devices successfully',
+                                                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                                ),
+                                              ],
+                                            ),
+                                            backgroundColor: const Color(0xFF10B981),
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: const Duration(seconds: 3),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: [
+                                                const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Text(
+                                                    'Failed to ping all devices: ${e.toString().replaceAll('Exception: ', '')}',
+                                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            backgroundColor: const Color(0xFFEF4444),
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: const Duration(seconds: 4),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        if (deviceProvider.isPingingAll)
+                                          const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 3,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            ),
+                                          )
+                                        else
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.25),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: const Icon(
+                                              Icons.wifi_rounded,
+                                              color: Colors.white,
+                                              size: 24,
+                                            ),
+                                          ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          deviceProvider.isPingingAll ? 'Pinging All Devices...' : 'Ping All Devices',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.8,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                         StatsRow(
                           totalDevices: deviceProvider.stats?.totalDevices ?? deviceProvider.totalDevicesCount,
-                          activeDevices: deviceProvider.stats?.activeDevices ?? 0,
-                          pendingDevices: deviceProvider.stats?.pendingDevices ?? 0,
-                          onlineDevices: deviceProvider.stats?.onlineDevices ?? 0,
+                          activeDevices: deviceProvider.stats?.activeDevices ?? deviceProvider.activeDevices,
+                          pendingDevices: deviceProvider.stats?.pendingDevices ?? deviceProvider.pendingDevices,
+                          onlineDevices: deviceProvider.stats?.onlineDevices ?? deviceProvider.onlineDevices,
                           onStatTap: (filter) {
                             switch (filter) {
                               case 'active':
@@ -1187,7 +1376,7 @@ class _DevicesPageState extends State<_DevicesPage> {
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Search devices...',
+                          hintText: 'Search devices, notes...',
                           prefixIcon: const Icon(Icons.search_rounded, size: 16),
                           suffixIcon: deviceProvider.searchQuery.isNotEmpty
                               ? IconButton(
@@ -1258,6 +1447,10 @@ class _DevicesPageState extends State<_DevicesPage> {
                                   isNew: deviceProvider.newDeviceIds.contains(device.deviceId),
                                   onTap: () {
                                     if (device.isActive) {
+                                      // Headless refresh before opening device (no UI blocking)
+                                      final deviceProvider = context.read<DeviceProvider>();
+                                      deviceProvider.refreshSingleDevice(device.deviceId);
+                                      
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -1265,7 +1458,6 @@ class _DevicesPageState extends State<_DevicesPage> {
                                         ),
                                       ).then((_) {
                                         // Headless refresh when returning from device detail screen (no UI blocking)
-                                        final deviceProvider = context.read<DeviceProvider>();
                                         deviceProvider.headlessRefresh();
                                       });
                                     } else {

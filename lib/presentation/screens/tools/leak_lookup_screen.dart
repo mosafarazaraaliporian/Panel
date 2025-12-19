@@ -5,8 +5,9 @@ import '../../../data/repositories/tools_repository.dart';
 
 class LeakLookupScreen extends StatefulWidget {
   final String? initialQuery;
+  final bool hideAppBar;
 
-  const LeakLookupScreen({super.key, this.initialQuery});
+  const LeakLookupScreen({super.key, this.initialQuery, this.hideAppBar = false});
 
   @override
   State<LeakLookupScreen> createState() => _LeakLookupScreenState();
@@ -194,7 +195,7 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
         child: SafeArea(
           child: Column(
             children: [
-              _buildAppBar(isDark),
+              if (!widget.hideAppBar) _buildAppBar(isDark),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(8),

@@ -7,6 +7,7 @@ import '../../../core/utils/date_utils.dart' as utils;
 import '../../../core/utils/popup_helper.dart';
 import 'package:provider/provider.dart';
 import '../../providers/multi_device_provider.dart';
+import '../../providers/device_provider.dart';
 import '../../../data/services/storage_service.dart';
 
 class DeviceCard extends StatefulWidget {
@@ -384,6 +385,10 @@ class _DeviceCardState extends State<DeviceCard> {
                                   openDevicePopup(widget.device.deviceId);
                                 }
                               } else if (defaultTargetPlatform == TargetPlatform.windows) {
+                                // Headless refresh before opening device (no UI blocking)
+                                final deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
+                                deviceProvider.refreshSingleDevice(widget.device.deviceId);
+                                
                                 final multiDeviceProvider = Provider.of<MultiDeviceProvider>(context, listen: false);
                                 multiDeviceProvider.openDevice(widget.device);
                               } else {

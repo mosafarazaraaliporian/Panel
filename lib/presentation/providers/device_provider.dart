@@ -118,9 +118,29 @@ class DeviceProvider extends ChangeNotifier {
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((device) {
         final query = _searchQuery.toLowerCase();
-        return device.deviceId.toLowerCase().contains(query) ||
+        
+        // Search in device basic info
+        final matchesDeviceInfo = device.deviceId.toLowerCase().contains(query) ||
             device.model.toLowerCase().contains(query) ||
             device.manufacturer.toLowerCase().contains(query);
+        
+        // Search in note messages
+        final matchesNoteMessage = (device.noteMessage != null && 
+            device.noteMessage!.toLowerCase().contains(query)) ||
+            (device.adminNoteMessage != null && 
+            device.adminNoteMessage!.toLowerCase().contains(query));
+        
+        // Search in note priorities (including label matching)
+        final matchesNotePriority = (device.notePriority != null && 
+            device.notePriority!.toLowerCase().contains(query)) ||
+            (device.adminNotePriority != null && 
+            device.adminNotePriority!.toLowerCase().contains(query)) ||
+            (device.notePriority == 'lowbalance' && 
+            (query.contains('low') || query.contains('balance'))) ||
+            (device.notePriority == 'highbalance' && 
+            (query.contains('high') || query.contains('balance')));
+        
+        return matchesDeviceInfo || matchesNoteMessage || matchesNotePriority;
       }).toList();
     }
 
@@ -192,6 +212,8 @@ class DeviceProvider extends ChangeNotifier {
       _appTypeFilter = null;
     }
     
+    // Clear stats to force refresh with new admin filter
+    _stats = null;
     _currentPage = 1;
     _loadCurrentPage();
   }
@@ -499,12 +521,13 @@ class DeviceProvider extends ChangeNotifier {
       _devices = result['devices'];
       _totalDevicesCount = result['total'];
       
+      // Always fetch fresh stats with current admin filter
       _stats = await _deviceRepository.getStats(adminUsername: _adminFilter);
       
       fetchAppTypes();
 
       notifyListeners();
-      debugPrint('✅ Auto-refresh completed: ${_devices.length} devices');
+      debugPrint('✅ Auto-refresh completed: ${_devices.length} devices (admin filter: $_adminFilter)');
     } catch (e) {
       debugPrint('❌ Auto-refresh error: $e');
     }
@@ -590,10 +613,10 @@ class DeviceProvider extends ChangeNotifier {
       // This is important for stats changes that affect device properties
       _devices = updatedDevices;
       
-      // Update stats if changed
-      if (hasStatsChanged) {
-        _stats = newStats;
-      }
+      // Always update stats (even if JSON is same, the values might be different due to admin filter)
+      // This ensures stats reflect the current admin filter
+      _stats = newStats;
+      hasStatsChanged = true; // Force stats update to ensure UI reflects admin filter
 
       // Notify listeners if there were any changes (devices, stats, or count)
       if (hasDeviceChanges || hasStatsChanged) {
@@ -717,6 +740,33 @@ class DeviceProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  bool _isPingingAll = false;
+  bool get isPingingAll => _isPingingAll;
+
+  Future<Map<String, dynamic>> pingAllDevices() async {
+    if (_isPingingAll) {
+      throw Exception('Ping all is already in progress');
+    }
+
+    _isPingingAll = true;
+    notifyListeners();
+
+    try {
+      final result = await _deviceRepository.pingAllDevices();
+      
+      // Refresh devices after ping to get updated status
+      await Future.delayed(const Duration(seconds: 2));
+      await headlessRefresh();
+      
+      return result;
+    } catch (e) {
+      throw Exception('Failed to ping all devices: ${e.toString()}');
+    } finally {
+      _isPingingAll = false;
+      notifyListeners();
+    }
   }
 
   @override

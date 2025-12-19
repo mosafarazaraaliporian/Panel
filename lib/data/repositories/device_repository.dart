@@ -378,4 +378,20 @@ class DeviceRepository {
     }
   }
 
+  Future<Map<String, dynamic>> pingAllDevices() async {
+    try {
+      final response = await _apiService.post(
+        ApiConstants.pingAllDevices,
+        data: {},
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Failed to ping all devices');
+    } catch (e) {
+      throw Exception('Error pinging all devices: ${e.toString()}');
+    }
+  }
+
 }

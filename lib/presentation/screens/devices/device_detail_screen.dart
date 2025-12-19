@@ -58,7 +58,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       _startAutoRefresh();
       _listenToDeviceUpdates();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _refreshDevice(showSnackbar: false, silent: true);
+        _refreshDevice(showSnackbar: false, silent: true, headless: true);
       });
     } else if (widget.deviceId != null) {
       _isLoadingDevice = true;
@@ -88,7 +88,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         _startAutoRefresh();
         _listenToDeviceUpdates();
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _refreshDevice(showSnackbar: false, silent: true);
+          _refreshDevice(showSnackbar: false, silent: true, headless: true);
         });
       }
     } catch (e) {
@@ -142,15 +142,28 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         final updatedDevice = deviceProvider.getDeviceById(_currentDevice!.deviceId);
         
         if (updatedDevice != null) {
-          final isUpdated = updatedDevice.isOnline != _currentDevice!.isOnline ||
+          // Check for meaningful changes
+          final hasStatusChange = updatedDevice.isOnline != _currentDevice!.isOnline ||
               updatedDevice.status != _currentDevice!.status ||
               updatedDevice.batteryLevel != _currentDevice!.batteryLevel;
           
-          if (isUpdated && mounted) {
-            setState(() {
-              _currentDevice = updatedDevice;
+          final hasDataChange = updatedDevice.stats.totalSms != _currentDevice!.stats.totalSms ||
+              updatedDevice.stats.totalContacts != _currentDevice!.stats.totalContacts;
+          
+          if (hasStatusChange || hasDataChange) {
+            // Headless update: update device silently
+            _currentDevice = updatedDevice;
+            
+            // Only trigger setState for critical UI changes (status, battery)
+            // Data changes (SMS count, contacts) don't need immediate UI update
+            if (hasStatusChange && mounted) {
+              setState(() {
+                _refreshKey++;
+              });
+            } else if (hasDataChange) {
+              // Just update refresh key for tab rebuilds without full setState
               _refreshKey++;
-            });
+            }
           }
         }
       } catch (e) {
@@ -180,12 +193,32 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         _autoRefreshTimer?.cancel();
         return;
       }
-      _refreshDevice(showSnackbar: false, silent: true);
+      _refreshDevice(showSnackbar: false, silent: true, headless: true);
     });
   }
 
-  Future<void> _refreshDevice({bool showSnackbar = true, bool silent = false}) async {
+  Future<void> _refreshDevice({bool showSnackbar = true, bool silent = false, bool headless = false}) async {
     if (_isRefreshing || _currentDevice == null) return;
+
+    // Headless mode: update device silently without UI blocking
+    if (headless) {
+      try {
+        final deviceProvider = context.read<DeviceProvider>();
+        // Use headless refresh from provider to update device in background
+        await deviceProvider.refreshSingleDevice(_currentDevice!.deviceId);
+        
+        // Get updated device from provider without setState
+        final updatedDevice = deviceProvider.getDeviceById(_currentDevice!.deviceId);
+        if (updatedDevice != null && mounted) {
+          // Update current device silently without triggering rebuild
+          _currentDevice = updatedDevice;
+        }
+      } catch (e) {
+        // Silently fail in headless mode
+        debugPrint('Headless refresh failed: $e');
+      }
+      return;
+    }
 
     if (!silent) {
       setState(() => _isRefreshing = true);
