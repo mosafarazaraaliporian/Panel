@@ -178,20 +178,20 @@ class _DeviceCardState extends State<DeviceCard> {
                           : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2))),
                   width: widget.isNew ? 2 : 1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.isNew
-                        ? const Color(0xFF10B981).withOpacity(0.3)
-                        : (widget.device.isPending
-                            ? Colors.orange.withOpacity(0.1)
-                            : Colors.black.withOpacity(isDark ? 0.2 : 0.05))),
-                    blurRadius: widget.isNew ? 12 : 8,
-                    offset: const Offset(0, 2),
-                    spreadRadius: widget.isNew ? 2 : 0,
-                  ),
-                ],
               ),
-          child: Column(
+              boxShadow: [
+                BoxShadow(
+                  color: widget.isNew
+                      ? const Color(0xFF10B981).withOpacity(0.3)
+                      : (widget.device.isPending
+                          ? Colors.orange.withOpacity(0.1)
+                          : Colors.black.withOpacity(isDark ? 0.2 : 0.05)),
+                  blurRadius: widget.isNew ? 12 : 8,
+                  offset: const Offset(0, 2),
+                  spreadRadius: widget.isNew ? 2 : 0,
+                ),
+              ],
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -565,25 +565,24 @@ class _DeviceCardState extends State<DeviceCard> {
                     ),
                   ],
                 ),
-            ],
-          ),
-        ),
-        if (_getNoteColor() != Colors.transparent)
-          Positioned(
-            left: 0,
-            top: 10,
-            bottom: 10,
-            child: Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: _getNoteColor(),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(10.24),
-                  bottomLeft: Radius.circular(10.24),
+              ],
+            ),
+            if (_getNoteColor() != Colors.transparent)
+              Positioned(
+                left: 0,
+                top: 10,
+                bottom: 10,
+                child: Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    color: _getNoteColor(),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(10.24),
+                      bottomLeft: Radius.circular(10.24),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
           ],
         ),
       ),
