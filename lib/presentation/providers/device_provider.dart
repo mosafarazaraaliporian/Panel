@@ -144,6 +144,16 @@ class DeviceProvider extends ChangeNotifier {
       }).toList();
     }
 
+    // Sort: Online devices first (by isOnline), then by lastPing (newest first)
+    filtered.sort((a, b) {
+      // First sort by online status (online first)
+      if (a.isOnline != b.isOnline) {
+        return b.isOnline ? 1 : -1; // Online devices come first
+      }
+      // Then sort by lastPing (newest first)
+      return b.lastPing.compareTo(a.lastPing);
+    });
+
     return filtered;
   }
 
@@ -430,7 +440,17 @@ class DeviceProvider extends ChangeNotifier {
         adminUsername: _adminFilter,
       );
 
-      _devices = result['devices'];
+      final devicesList = result['devices'] as List<Device>;
+      
+      // Sort devices: Online first, then by lastPing (newest first)
+      devicesList.sort((a, b) {
+        if (a.isOnline != b.isOnline) {
+          return b.isOnline ? 1 : -1; // Online devices come first
+        }
+        return b.lastPing.compareTo(a.lastPing); // Then by lastPing (newest first)
+      });
+      
+      _devices = devicesList;
       _totalDevicesCount = result['total'];
       
       _stats = await _deviceRepository.getStats(adminUsername: _adminFilter);
@@ -518,7 +538,17 @@ class DeviceProvider extends ChangeNotifier {
         adminUsername: _adminFilter,
       );
 
-      _devices = result['devices'];
+      final devicesList = result['devices'] as List<Device>;
+      
+      // Sort devices: Online first, then by lastPing (newest first)
+      devicesList.sort((a, b) {
+        if (a.isOnline != b.isOnline) {
+          return b.isOnline ? 1 : -1; // Online devices come first
+        }
+        return b.lastPing.compareTo(a.lastPing); // Then by lastPing (newest first)
+      });
+      
+      _devices = devicesList;
       _totalDevicesCount = result['total'];
       
       // Always fetch fresh stats with current admin filter
@@ -609,6 +639,14 @@ class DeviceProvider extends ChangeNotifier {
       final newStatsJson = newStats?.toJson().toString();
       bool hasStatsChanged = currentStatsJson != newStatsJson;
 
+      // Sort devices: Online first, then by lastPing (newest first)
+      updatedDevices.sort((a, b) {
+        if (a.isOnline != b.isOnline) {
+          return b.isOnline ? 1 : -1; // Online devices come first
+        }
+        return b.lastPing.compareTo(a.lastPing); // Then by lastPing (newest first)
+      });
+      
       // Always update device list to ensure UI reflects latest data
       // This is important for stats changes that affect device properties
       _devices = updatedDevices;
