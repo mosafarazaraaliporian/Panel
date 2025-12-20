@@ -69,13 +69,6 @@ class DeviceProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   Set<String> get newDeviceIds => _newDeviceIds;
   
-  // Check if device is new (registered in last 24 hours) - public method
-  bool isDeviceNew(Device device) {
-    final now = DateTime.now();
-    final registeredAt = device.registeredAt;
-    final difference = now.difference(registeredAt);
-    return difference.inHours < 24; // New if registered within last 24 hours
-  }
   StatusFilter? get statusFilter => _statusFilter;
   ConnectionFilter? get connectionFilter => _connectionFilter;
   UpiFilter? get upiFilter => _upiFilter;
