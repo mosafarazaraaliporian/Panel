@@ -270,9 +270,9 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
   }
 
   Future<void> _copyToClipboard(String text, String label) async {
-    try {
-      await Clipboard.setData(ClipboardData(text: text));
-      if (mounted) {
+    final success = await copyToClipboard(text);
+    if (mounted) {
+      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$label copied to clipboard'),
@@ -284,9 +284,7 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
             ),
           ),
         );
-      }
-    } catch (e) {
-      if (mounted) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to copy. Please copy manually: $text'),
