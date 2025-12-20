@@ -23,7 +23,7 @@ import '../../widgets/multi_device_view.dart';
 import '../../providers/multi_device_provider.dart';
 import '../../widgets/leak_lookup_view.dart';
 import '../../providers/leak_lookup_provider.dart';
-import '../../../core/utils/popup_helper_web.dart';
+import '../../../core/utils/popup_helper.dart';
 import '../../../data/services/storage_service.dart';
 
 class MainScreen extends StatefulWidget {
