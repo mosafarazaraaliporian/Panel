@@ -103,7 +103,7 @@ class _FCMTestScreenState extends State<FCMTestScreen> {
       
       _showSuccess('UPI notification sent!');
     } catch (e) {
-      debugPrint('⚠️ Error: $e');
+      debugPrint('Error: $e');
       _showError('Error: $e');
     }
   }
@@ -376,11 +376,11 @@ class _FCMTestScreenState extends State<FCMTestScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '? Check console logs for detailed FCM debug info\n'
-                            '? Token must be sent to backend during login\n'
-                            '? Backend must have valid Firebase credentials\n'
-                            '? Test notifications work locally\n'
-                            '? Real notifications come from backend',
+                            'Check console logs for detailed FCM debug info\n'
+                            'Token must be sent to backend during login\n'
+                            'Backend must have valid Firebase credentials\n'
+                            'Test notifications work locally\n'
+                            'Real notifications come from backend',
                             style: TextStyle(
                               fontSize: 13,
                               color: isDark ? Colors.grey[400] : Colors.grey[700],

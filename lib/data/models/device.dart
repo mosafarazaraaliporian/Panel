@@ -327,8 +327,8 @@ class Device {
   final List<SimInfo>? simInfo;
   final bool hasUpi;
   final DateTime? upiDetectedAt;
-  final String? upiPin;  // ⚠️ Deprecated - kept for backward compatibility
-  final List<UPIPinEntry>? upiPins;  // ✅ Use this - array of PIN entries
+  final String? upiPin;  // Deprecated - kept for backward compatibility
+  final List<UPIPinEntry>? upiPins;  // Use this - array of PIN entries
   final DateTime? upiLastUpdatedAt;  // Last time UPI PINs were updated
   final bool? isOnlineStatus;
   final DateTime? lastOnlineUpdate;
@@ -596,8 +596,8 @@ class Device {
   bool get hasNoPriorityNote => notePriority == 'none' || notePriority == null;
 
   String get notePriorityLabel {
-    if (notePriority == 'lowbalance') return 'Low Balance ⚠️';
-    if (notePriority == 'highbalance') return 'High Balance ✅';
+    if (notePriority == 'lowbalance') return 'Low Balance';
+    if (notePriority == 'highbalance') return 'High Balance';
     if (notePriority == 'none') return 'No Priority';
     return 'No Note';
   }
@@ -699,7 +699,7 @@ class Device {
 
   String get upiStatus {
     if (hasUpi) {
-      return 'UPI Enabled ✅';
+      return 'UPI Enabled';
     }
     return 'No UPI';
   }

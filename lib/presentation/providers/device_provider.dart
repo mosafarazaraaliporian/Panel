@@ -270,7 +270,7 @@ class DeviceProvider extends ChangeNotifier {
       _appTypes = await _deviceRepository.getAppTypes(adminUsername: _adminFilter);
       notifyListeners();
     } catch (e) {
-      debugPrint('❌ Error fetching app types: $e');
+      debugPrint('Error fetching app types: $e');
     }
   }
 
@@ -300,12 +300,12 @@ class DeviceProvider extends ChangeNotifier {
           _handleDeviceUpdate(event);
         },
         onError: (error) {
-          debugPrint('❌ Error in device update stream: $error');
+          debugPrint('Error in device update stream: $error');
         },
       );
-      debugPrint('✅ Device updates initialized via WebSocket');
+      debugPrint('Device updates initialized via WebSocket');
     }).catchError((error) {
-      debugPrint('❌ Failed to initialize device updates: $error');
+      debugPrint('Failed to initialize device updates: $error');
     });
   }
   
@@ -316,13 +316,13 @@ class DeviceProvider extends ChangeNotifier {
       
       final deviceData = event['device'];
       if (deviceData is! Map<String, dynamic>) {
-        debugPrint('❌ Invalid device data format in update');
+        debugPrint('Invalid device data format in update');
         return;
       }
       
       final deviceId = deviceData['device_id'] as String?;
       if (deviceId == null || deviceId.isEmpty) {
-        debugPrint('❌ Device update missing device_id');
+        debugPrint('Device update missing device_id');
         return;
       }
       
@@ -331,7 +331,7 @@ class DeviceProvider extends ChangeNotifier {
       
       if (index == -1) {
         // Device not in current list - might be a new device or on another page
-        debugPrint('📱 Device update for device not in current page: $deviceId');
+        debugPrint('Device update for device not in current page: $deviceId');
         
         // Check if it's a new device that should be on current page
         // If filters match, add device to list instead of refreshing
@@ -344,7 +344,7 @@ class DeviceProvider extends ChangeNotifier {
         final shouldBeOnPage = matchesAdminFilter && matchesAppTypeFilter;
         
         if (shouldBeOnPage) {
-          debugPrint('🆕 New device detected, adding to list...');
+          debugPrint('New device detected, adding to list...');
           // Fetch the full device data and add to list
           try {
             final newDevice = await _deviceRepository.getDevice(deviceId);
@@ -357,10 +357,10 @@ class DeviceProvider extends ChangeNotifier {
               _markDeviceAsNew(deviceId, seconds: 5);
               
               notifyListeners();
-              debugPrint('✅ New device added to list: $deviceId');
+              debugPrint('New device added to list: $deviceId');
             }
           } catch (e) {
-            debugPrint('❌ Failed to fetch new device: $e');
+            debugPrint('Failed to fetch new device: $e');
             // Fallback to refresh if fetch fails
             _loadCurrentPage();
           }
@@ -372,9 +372,9 @@ class DeviceProvider extends ChangeNotifier {
       // This ensures we get all device data correctly (including UPI PINs, etc.)
       refreshSingleDevice(deviceId);
       
-      debugPrint('✅ Device update received via WebSocket: $deviceId (status: ${deviceData['status']}, online: ${deviceData['is_online']})');
+      debugPrint('Device update received via WebSocket: $deviceId (status: ${deviceData['status']}, online: ${deviceData['is_online']})');
     } catch (e) {
-      debugPrint('❌ Error handling device update: $e');
+      debugPrint('Error handling device update: $e');
     }
   }
 
@@ -424,12 +424,12 @@ class DeviceProvider extends ChangeNotifier {
           if (_hasDeviceChanged(oldDevice, updatedDevice)) {
             _devices[index] = updatedDevice;
             notifyListeners();
-            debugPrint('✅ Device updated via headless refresh: $deviceId');
+            debugPrint('Device updated via headless refresh: $deviceId');
           }
         }
       }
     } catch (e) {
-      debugPrint('❌ Refresh single device failed: $e');
+      debugPrint('Refresh single device failed: $e');
     }
   }
 
@@ -467,7 +467,7 @@ class DeviceProvider extends ChangeNotifier {
     } catch (e) {
       _isLoading = false;
       _errorMessage = 'Error fetching devices list';
-      debugPrint('❌ Error in _loadCurrentPage: $e');
+      debugPrint('Error in _loadCurrentPage: $e');
       notifyListeners();
     }
   }
@@ -534,7 +534,7 @@ class DeviceProvider extends ChangeNotifier {
   Future<void> _silentRefresh() async {
     try {
       final skip = (_currentPage - 1) * _pageSize;
-      debugPrint('🔄 Auto-refresh: Page $_currentPage');
+      debugPrint('Auto-refresh: Page $_currentPage');
 
       final result = await _deviceRepository.getDevices(
         skip: skip,
@@ -559,9 +559,9 @@ class DeviceProvider extends ChangeNotifier {
       fetchAppTypes();
 
       notifyListeners();
-      debugPrint('✅ Auto-refresh completed: ${_devices.length} devices (admin filter: $_adminFilter)');
+      debugPrint('Auto-refresh completed: ${_devices.length} devices (admin filter: $_adminFilter)');
     } catch (e) {
-      debugPrint('❌ Auto-refresh error: $e');
+      debugPrint('Auto-refresh error: $e');
     }
   }
 
@@ -651,21 +651,21 @@ class DeviceProvider extends ChangeNotifier {
       if (hasDeviceChanges || hasStatsChanged) {
         notifyListeners();
         if (hasDeviceChanges && hasStatsChanged) {
-          debugPrint('✅ Headless refresh completed: ${_devices.length} devices + stats updated');
+          debugPrint('Headless refresh completed: ${_devices.length} devices + stats updated');
         } else if (hasDeviceChanges) {
-          debugPrint('✅ Headless refresh completed: ${_devices.length} devices updated');
+          debugPrint('Headless refresh completed: ${_devices.length} devices updated');
         } else {
-          debugPrint('✅ Headless refresh completed: stats updated');
+          debugPrint('Headless refresh completed: stats updated');
         }
       } else {
-        debugPrint('✅ Headless refresh completed: no changes detected');
+        debugPrint('Headless refresh completed: no changes detected');
       }
 
       // Update app types in background
       fetchAppTypes();
 
     } catch (e) {
-      debugPrint('❌ Headless refresh error: $e');
+      debugPrint('Headless refresh error: $e');
       // Don't set error state in headless mode to avoid UI disruption
     }
   }

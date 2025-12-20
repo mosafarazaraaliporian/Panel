@@ -53,7 +53,7 @@ class WebSocketService {
       if (_lastPongReceived != null) {
         final timeSincePong = DateTime.now().difference(_lastPongReceived!);
         if (timeSincePong > _pongTimeout) {
-          developer.log('⚠️ No pong received for ${timeSincePong.inSeconds}s, forcing reconnect', name: 'WebSocket');
+          developer.log('No pong received for ${timeSincePong.inSeconds}s, forcing reconnect', name: 'WebSocket');
           _forceReconnect();
           return;
         }
@@ -129,7 +129,7 @@ class WebSocketService {
     // Add to subscriptions set
     if (!_subscriptions.contains(deviceId)) {
       _subscriptions.add(deviceId);
-      developer.log('📝 Added device to subscriptions: $deviceId', name: 'WebSocket');
+      developer.log('Added device to subscriptions: $deviceId', name: 'WebSocket');
     }
     
     // Retry subscribe if connection is not ready
@@ -141,12 +141,12 @@ class WebSocketService {
             _sendAction('subscribe', deviceId);
           });
         } else {
-          developer.log('⚠️ Failed to connect, will retry subscribe later', name: 'WebSocket');
+          developer.log('Failed to connect, will retry subscribe later', name: 'WebSocket');
         }
       });
     } else {
       // Connection is ready, send subscribe immediately
-      developer.log('✅ Connection ready, subscribing to device: $deviceId', name: 'WebSocket');
+      developer.log('Connection ready, subscribing to device: $deviceId', name: 'WebSocket');
       _sendAction('subscribe', deviceId);
     }
   }
@@ -183,7 +183,7 @@ class WebSocketService {
         _reconnectAttempts = 0;
         _lastPongReceived = DateTime.now();
         
-        developer.log('✅ WebSocket connected, sending subscriptions...', name: 'WebSocket');
+        developer.log('WebSocket connected, sending subscriptions...', name: 'WebSocket');
         
         // Start timers if not already started
         _startPingTimer();
@@ -204,7 +204,7 @@ class WebSocketService {
       
       if (type == 'subscribed') {
         final deviceId = data['device_id'];
-        developer.log('✅ Successfully subscribed to device: $deviceId', name: 'WebSocket');
+        developer.log('Successfully subscribed to device: $deviceId', name: 'WebSocket');
         // Ensure it's in our subscriptions set
         if (deviceId != null && deviceId.isNotEmpty) {
           _subscriptions.add(deviceId);
@@ -213,7 +213,7 @@ class WebSocketService {
       }
       
       if (type == 'error' && data['message']?.toString().contains('Subscription') == true) {
-        developer.log('⚠️ Subscription error: ${data['message']}', name: 'WebSocket');
+        developer.log('Subscription error: ${data['message']}', name: 'WebSocket');
         // Retry subscription after a delay
         final deviceId = data['device_id'];
         if (deviceId != null && deviceId.isNotEmpty) {
@@ -236,7 +236,7 @@ class WebSocketService {
       }
 
       if (type == 'sms' || type == 'sms_update') {
-        developer.log('📨 Received SMS notification: ${data['device_id']}', name: 'WebSocket');
+        developer.log('Received SMS notification: ${data['device_id']}', name: 'WebSocket');
         // Add immediately to stream
         if (!_smsController.isClosed) {
           _smsController.add(data);
@@ -244,7 +244,7 @@ class WebSocketService {
       }
       
       if (type == 'device_update') {
-        developer.log('📱 Received device update notification: ${data['device_id']}', name: 'WebSocket');
+        developer.log('Received device update notification: ${data['device_id']}', name: 'WebSocket');
         // Add immediately to device stream
         if (!_deviceController.isClosed) {
           _deviceController.add(data);
@@ -369,7 +369,7 @@ class WebSocketService {
       if (_lastPongReceived != null) {
         final timeSincePong = DateTime.now().difference(_lastPongReceived!);
         if (timeSincePong > _pongTimeout) {
-          developer.log('⚠️ Health check failed: No pong for ${timeSincePong.inSeconds}s, reconnecting...', name: 'WebSocket');
+          developer.log('Health check failed: No pong for ${timeSincePong.inSeconds}s, reconnecting...', name: 'WebSocket');
           _forceReconnect();
           return;
         }
@@ -378,7 +378,7 @@ class WebSocketService {
         // This is normal for initial connection - give it 30 seconds
         final timeSinceConnection = DateTime.now().difference(_lastPongReceived ?? DateTime.now());
         if (timeSinceConnection.inSeconds > 30) {
-          developer.log('⚠️ Health check: No pong received after 30s, reconnecting...', name: 'WebSocket');
+          developer.log('Health check: No pong received after 30s, reconnecting...', name: 'WebSocket');
           _forceReconnect();
         }
       }

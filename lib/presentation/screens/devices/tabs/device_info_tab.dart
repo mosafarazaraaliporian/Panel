@@ -831,8 +831,8 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
                             const SizedBox(width: 6),
                             Text(
                               _currentDevice.adminNotePriority == 'lowbalance'
-                                  ? 'Low Balance ⚠️'
-                                  : 'High Balance ✅',
+                                  ? 'Low Balance'
+                                  : 'High Balance',
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,

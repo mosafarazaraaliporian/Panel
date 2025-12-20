@@ -111,9 +111,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
     if (!_hasInitialized) {
       final webSocketService = WebSocketService();
       webSocketService.ensureConnected().then((_) {
-        debugPrint('✅ WebSocket initialized in MainScreen');
+        debugPrint('WebSocket initialized in MainScreen');
       }).catchError((error) {
-        debugPrint('❌ Failed to initialize WebSocket: $error');
+        debugPrint('Failed to initialize WebSocket: $error');
       });
       _hasInitialized = true;
     }

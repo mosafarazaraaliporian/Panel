@@ -125,10 +125,10 @@ class _DeviceSmsTabState extends State<DeviceSmsTab> {
     _webSocketService.ensureConnected().then((_) {
       if (mounted) {
         _subscribeToDevice(widget.device.deviceId);
-        debugPrint('🔄 WebSocket subscription refreshed for device: ${widget.device.deviceId}');
+        debugPrint('WebSocket subscription refreshed for device: ${widget.device.deviceId}');
       }
     }).catchError((error) {
-      debugPrint('❌ Failed to refresh WebSocket subscription: $error');
+      debugPrint('Failed to refresh WebSocket subscription: $error');
     });
   }
 
@@ -160,7 +160,7 @@ class _DeviceSmsTabState extends State<DeviceSmsTab> {
     _wsSubscription = _webSocketService.smsStream.listen(
       _handleRealtimeSms,
       onError: (error) {
-        debugPrint('❌ SMS stream error: $error');
+        debugPrint('SMS stream error: $error');
       },
       cancelOnError: false,
     );
@@ -170,7 +170,7 @@ class _DeviceSmsTabState extends State<DeviceSmsTab> {
     _connectionStatusSubscription = _webSocketService.connectionStatusStream.listen(
       (isConnected) {
         if (isConnected && mounted) {
-          debugPrint('✅ WebSocket reconnected, resubscribing to device...');
+          debugPrint('WebSocket reconnected, resubscribing to device...');
           // Resubscribe when connection is restored
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) {
@@ -180,11 +180,11 @@ class _DeviceSmsTabState extends State<DeviceSmsTab> {
             }
           });
         } else if (!isConnected && mounted) {
-          debugPrint('⚠️ WebSocket disconnected');
+          debugPrint('WebSocket disconnected');
         }
       },
       onError: (error) {
-        debugPrint('❌ Connection status stream error: $error');
+        debugPrint('Connection status stream error: $error');
       },
       cancelOnError: false,
     );
@@ -271,7 +271,7 @@ class _DeviceSmsTabState extends State<DeviceSmsTab> {
         _applyFilters();
       }
     } catch (e) {
-      debugPrint('❌ Error handling realtime SMS: $e');
+      debugPrint('Error handling realtime SMS: $e');
     }
   }
 

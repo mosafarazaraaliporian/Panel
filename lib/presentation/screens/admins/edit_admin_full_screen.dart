@@ -421,7 +421,7 @@ class _EditAdminFullScreenState extends State<EditAdminFullScreen>
                                   const SizedBox(height: 4),
                                   Text(
                                     widget.admin.isExpired
-                                        ? '⚠️ Account has expired'
+                                        ? 'Account has expired'
                                         : widget.admin.expiryStatus,
                                     style: TextStyle(
                                       fontSize: 11,
