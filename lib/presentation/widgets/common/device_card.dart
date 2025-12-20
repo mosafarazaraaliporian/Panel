@@ -254,7 +254,7 @@ class _DeviceCardState extends State<DeviceCard> {
                                       borderRadius: BorderRadius.circular(3.84),
                                     ),
                                     child: const Text(
-                                      '⏳',
+                                      'Pending',
                                       style: TextStyle(fontSize: 6.4, color: Colors.white),
                                     ),
                                   ),

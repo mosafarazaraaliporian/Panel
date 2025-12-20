@@ -134,7 +134,7 @@ class WebSocketService {
     
     // Retry subscribe if connection is not ready
     if (_channel == null || !_isConnected) {
-      developer.log('⏳ Connection not ready, ensuring connection first...', name: 'WebSocket');
+      developer.log('Connection not ready, ensuring connection first...', name: 'WebSocket');
       ensureConnected().then((_) {
         if (_channel != null && _isConnected) {
           Future.delayed(const Duration(milliseconds: 200), () {
@@ -349,9 +349,9 @@ class WebSocketService {
       if (_channel != null && _isConnected && !_isConnecting) {
         try {
           _sendAction('ping', '');
-          developer.log('📤 Sent ping to server', name: 'WebSocket');
+          developer.log('Sent ping to server', name: 'WebSocket');
         } catch (e) {
-          developer.log('❌ Failed to send ping: $e', name: 'WebSocket');
+          developer.log('Failed to send ping: $e', name: 'WebSocket');
           _scheduleReconnect();
         }
       }
