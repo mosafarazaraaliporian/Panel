@@ -1,3 +1,6 @@
 // Stub for non-web platforms
-import 'dart:html' as html;
+Future<bool> copyToClipboardWeb(String text) async {
+  // This should never be called on non-web platforms
+  return false;
+}
 
