@@ -132,34 +132,46 @@ class _SplashScreenState extends State<SplashScreen>
             }
             // Handle leak lookup route (in popup or new tab)
             if (hash.startsWith('#/leak-lookup')) {
-              if (authProvider.isAuthenticated) {
-                // Extract query parameter from hash
-                String? query;
-                if (hash.contains('?')) {
-                  try {
-                    final parts = hash.split('?');
-                    if (parts.length > 1) {
-                      final params = Uri.splitQueryString(parts[1]);
-                      query = params['query'];
-                    }
-                  } catch (e) {
-                    // Ignore parsing errors
+              debugPrint('[SplashScreen] Leak lookup route detected: $hash');
+              
+              // Extract query parameter from hash
+              String? query;
+              if (hash.contains('?')) {
+                try {
+                  final parts = hash.split('?');
+                  debugPrint('[SplashScreen] Hash parts: $parts');
+                  if (parts.length > 1) {
+                    final params = Uri.splitQueryString(parts[1]);
+                    query = params['query'];
+                    debugPrint('[SplashScreen] Extracted query parameter: $query');
                   }
+                } catch (e) {
+                  debugPrint('[SplashScreen] Error parsing query parameter: $e');
+                  // Ignore parsing errors
                 }
-                // Skip delay for direct navigation
-                Navigator.of(context).pushReplacement(
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        LeakLookupScreen(initialQuery: query),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    transitionDuration: const Duration(milliseconds: 500),
-                  ),
-                );
-                return;
+              } else {
+                debugPrint('[SplashScreen] No query parameter found in hash');
               }
+              
+              // For leak lookup, always navigate even if not authenticated
+              // (authentication will be checked inside the screen if needed)
+              // Skip delay for direct navigation
+              debugPrint('[SplashScreen] Navigating to LeakLookupScreen with query: $query');
+              Navigator.of(context).pushReplacement(
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) {
+                    debugPrint('[SplashScreen] Building LeakLookupScreen');
+                    return LeakLookupScreen(initialQuery: query);
+                  },
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                  transitionDuration: const Duration(milliseconds: 500),
+                ),
+              );
+              debugPrint('[SplashScreen] Navigation completed');
+              return;
             }
           }
         }

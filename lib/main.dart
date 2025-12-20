@@ -197,9 +197,19 @@ class _MyAppState extends State<MyApp> {
                   settings: settings,
                 );
               }
-              if (settings.name == '/leak-lookup') {
+              if (settings.name == '/leak-lookup' || settings.name?.startsWith('/leak-lookup') == true) {
+                // Extract query parameter from route name if present
+                String? query;
+                if (settings.name != null && settings.name!.contains('?')) {
+                  try {
+                    final uri = Uri.parse('http://example.com${settings.name}');
+                    query = uri.queryParameters['query'];
+                  } catch (e) {
+                    // Ignore parsing errors
+                  }
+                }
                 return MaterialPageRoute(
-                  builder: (_) => const LeakLookupScreen(),
+                  builder: (_) => LeakLookupScreen(initialQuery: query),
                   settings: settings,
                 );
               }
