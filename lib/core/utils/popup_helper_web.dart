@@ -1,9 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-
-// Conditional import: use dart:js_interop on web, stub on other platforms
 import 'dart:js_interop' if (dart.library.io) 'popup_helper_web_stub.dart';
-
-// These are only used on web due to kIsWeb checks in functions
 @JS('window.open')
 external JSObject? _windowOpen(String url, String target, String features);
 

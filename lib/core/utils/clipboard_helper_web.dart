@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 Future<bool> copyToClipboardWeb(String text) async {
   try {
-    // Use execCommand method which works reliably in web browsers
     final textArea = html.TextAreaElement();
     textArea.value = text;
     textArea.style.position = 'fixed';
@@ -16,7 +15,6 @@ Future<bool> copyToClipboardWeb(String text) async {
     if (success) {
       return true;
     }
-    // Fallback to Clipboard API
     try {
       await Clipboard.setData(ClipboardData(text: text));
       return true;
@@ -24,7 +22,6 @@ Future<bool> copyToClipboardWeb(String text) async {
       return false;
     }
   } catch (e) {
-    // Final fallback
     try {
       await Clipboard.setData(ClipboardData(text: text));
       return true;

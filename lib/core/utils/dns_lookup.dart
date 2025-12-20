@@ -1,5 +1,3 @@
-// Conditional import: this file exists for non-web platforms
-// For web, use dns_lookup_stub.dart instead
 
 import 'dart:async';
 import 'dart:io';

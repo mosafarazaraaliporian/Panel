@@ -69,7 +69,6 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
             _queryController.text = query;
           }
         } catch (e) {
-          // Ignore parsing errors
         }
       }
     }
