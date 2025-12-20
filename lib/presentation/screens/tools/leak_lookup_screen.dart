@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../data/repositories/tools_repository.dart';
 import '../../../core/utils/popup_helper.dart';
+import '../../../core/utils/clipboard_helper.dart';
 
 class LeakLookupScreen extends StatefulWidget {
   final String? initialQuery;
@@ -190,17 +191,11 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
 
   Future<void> _copyJsonToClipboard() async {
     final prettyJson = const JsonEncoder.withIndent('  ').convert(_result);
-    if (kIsWeb) {
-      // Use web clipboard API for better compatibility
-      try {
-        await Clipboard.setData(ClipboardData(text: prettyJson));
-        _showSuccessSnackBar('Copied to clipboard');
-      } catch (e) {
-        _showWarningSnackBar('Failed to copy: $e');
-      }
-    } else {
-      Clipboard.setData(ClipboardData(text: prettyJson));
+    final success = await copyToClipboard(prettyJson);
+    if (success) {
       _showSuccessSnackBar('Copied to clipboard');
+    } else {
+      _showWarningSnackBar('Failed to copy. Please copy manually.');
     }
   }
 
