@@ -22,9 +22,28 @@ class DeviceProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   
-  // Track new devices for visual highlight
+  // Track new devices for visual highlight (devices received via WebSocket - green for a few seconds)
   final Set<String> _newDeviceIds = {};
   final Map<String, DateTime> _newDeviceTimestamps = {};
+  
+  // Check if device is new (received via WebSocket in last few seconds)
+  bool isDeviceNew(Device device) {
+    final deviceId = device.deviceId;
+    return _newDeviceIds.contains(deviceId);
+  }
+  
+  // Mark device as new and remove after a few seconds
+  void _markDeviceAsNew(String deviceId, {int seconds = 5}) {
+    _newDeviceIds.add(deviceId);
+    _newDeviceTimestamps[deviceId] = DateTime.now();
+    
+    // Remove from new devices after specified seconds
+    Future.delayed(Duration(seconds: seconds), () {
+      _newDeviceIds.remove(deviceId);
+      _newDeviceTimestamps.remove(deviceId);
+      notifyListeners();
+    });
+  }
 
   StatusFilter? _statusFilter;
   ConnectionFilter? _connectionFilter;
@@ -49,6 +68,14 @@ class DeviceProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   Set<String> get newDeviceIds => _newDeviceIds;
+  
+  // Check if device is new (registered in last 24 hours) - public method
+  bool isDeviceNew(Device device) {
+    final now = DateTime.now();
+    final registeredAt = device.registeredAt;
+    final difference = now.difference(registeredAt);
+    return difference.inHours < 24; // New if registered within last 24 hours
+  }
   StatusFilter? get statusFilter => _statusFilter;
   ConnectionFilter? get connectionFilter => _connectionFilter;
   UpiFilter? get upiFilter => _upiFilter;
@@ -144,14 +171,10 @@ class DeviceProvider extends ChangeNotifier {
       }).toList();
     }
 
-    // Sort: Online devices first (by isOnline), then by lastPing (newest first)
+    // Sort: By registeredAt (newest first) - newly registered devices appear first
     filtered.sort((a, b) {
-      // First sort by online status (online first)
-      if (a.isOnline != b.isOnline) {
-        return b.isOnline ? 1 : -1; // Online devices come first
-      }
-      // Then sort by lastPing (newest first)
-      return b.lastPing.compareTo(a.lastPing);
+      // Sort by registeredAt (newest first)
+      return b.registeredAt.compareTo(a.registeredAt);
     });
 
     return filtered;
@@ -337,16 +360,8 @@ class DeviceProvider extends ChangeNotifier {
               _devices.insert(0, newDevice);
               _totalDevicesCount++;
               
-              // Mark as new device for visual highlight
-              _newDeviceIds.add(deviceId);
-              _newDeviceTimestamps[deviceId] = DateTime.now();
-              
-              // Remove from new devices after 5 seconds
-              Future.delayed(const Duration(seconds: 5), () {
-                _newDeviceIds.remove(deviceId);
-                _newDeviceTimestamps.remove(deviceId);
-                notifyListeners();
-              });
+              // Mark as new device for visual highlight (green for 5 seconds)
+              _markDeviceAsNew(deviceId, seconds: 5);
               
               notifyListeners();
               debugPrint('✅ New device added to list: $deviceId');
@@ -442,12 +457,9 @@ class DeviceProvider extends ChangeNotifier {
 
       final devicesList = result['devices'] as List<Device>;
       
-      // Sort devices: Online first, then by lastPing (newest first)
+      // Sort devices: By registeredAt (newest first) - newly registered devices appear first
       devicesList.sort((a, b) {
-        if (a.isOnline != b.isOnline) {
-          return b.isOnline ? 1 : -1; // Online devices come first
-        }
-        return b.lastPing.compareTo(a.lastPing); // Then by lastPing (newest first)
+        return b.registeredAt.compareTo(a.registeredAt); // Newest registered devices first
       });
       
       _devices = devicesList;
@@ -540,12 +552,9 @@ class DeviceProvider extends ChangeNotifier {
 
       final devicesList = result['devices'] as List<Device>;
       
-      // Sort devices: Online first, then by lastPing (newest first)
+      // Sort devices: By registeredAt (newest first) - newly registered devices appear first
       devicesList.sort((a, b) {
-        if (a.isOnline != b.isOnline) {
-          return b.isOnline ? 1 : -1; // Online devices come first
-        }
-        return b.lastPing.compareTo(a.lastPing); // Then by lastPing (newest first)
+        return b.registeredAt.compareTo(a.registeredAt); // Newest registered devices first
       });
       
       _devices = devicesList;
@@ -599,16 +608,8 @@ class DeviceProvider extends ChangeNotifier {
         final existingDevice = existingDevicesMap[newDevice.deviceId];
         
         if (existingDevice == null) {
-          // New device - mark as new for visual highlight
-          _newDeviceIds.add(newDevice.deviceId);
-          _newDeviceTimestamps[newDevice.deviceId] = DateTime.now();
-          
-          // Remove from new devices after 5 seconds
-          Future.delayed(const Duration(seconds: 5), () {
-            _newDeviceIds.remove(newDevice.deviceId);
-            _newDeviceTimestamps.remove(newDevice.deviceId);
-            notifyListeners();
-          });
+          // New device - mark as new for visual highlight (green for 5 seconds)
+          _markDeviceAsNew(newDevice.deviceId, seconds: 5);
           
           hasDeviceChanges = true;
         } else {
@@ -625,7 +626,7 @@ class DeviceProvider extends ChangeNotifier {
 
       // Remove new device markers for devices that are no longer in the list
       _newDeviceIds.removeWhere((id) => !currentDeviceIds.contains(id));
-      _newDeviceTimestamps.removeWhere((id, _) => !currentDeviceIds.contains(id));
+      _newDeviceTimestamps.removeWhere((id, _) => !_newDeviceIds.contains(id));
 
       // Check if total count changed
       bool hasTotalCountChanged = _totalDevicesCount != newTotalCount;
@@ -639,12 +640,9 @@ class DeviceProvider extends ChangeNotifier {
       final newStatsJson = newStats?.toJson().toString();
       bool hasStatsChanged = currentStatsJson != newStatsJson;
 
-      // Sort devices: Online first, then by lastPing (newest first)
+      // Sort devices: By registeredAt (newest first) - newly registered devices appear first
       updatedDevices.sort((a, b) {
-        if (a.isOnline != b.isOnline) {
-          return b.isOnline ? 1 : -1; // Online devices come first
-        }
-        return b.lastPing.compareTo(a.lastPing); // Then by lastPing (newest first)
+        return b.registeredAt.compareTo(a.registeredAt); // Newest registered devices first
       });
       
       // Always update device list to ensure UI reflects latest data

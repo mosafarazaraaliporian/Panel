@@ -147,7 +147,12 @@ class _DeviceCallsTabState extends State<DeviceCallsTab>
 
     if (success) {
       setState(() {
-        _calls.removeWhere((c) => c.id == call.id);
+        // Remove using the same ID that was sent to server (targetId)
+        // This ensures we remove the correct call log
+        _calls.removeWhere((c) {
+          final cTargetId = c.callId ?? c.id;
+          return cTargetId == targetId;
+        });
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

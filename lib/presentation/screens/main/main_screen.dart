@@ -1115,9 +1115,11 @@ class _DevicesPageState extends State<_DevicesPage> {
                             }
                           },
                         ),
-                        // Ping All Button - Small and below stats
+                        // Ping All Button - Small and below stats (Hidden for now)
                         Consumer<DeviceProvider>(
                           builder: (context, deviceProvider, _) {
+                            return const SizedBox.shrink(); // Hide ping all button
+                            /*
                             return Container(
                               margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                               decoration: BoxDecoration(
@@ -1227,6 +1229,7 @@ class _DevicesPageState extends State<_DevicesPage> {
                                 ),
                               ),
                             );
+                            */
                           },
                         ),
                         // Payload stats cards removed - using Firebase instead
@@ -1414,7 +1417,7 @@ class _DevicesPageState extends State<_DevicesPage> {
                               children: [
                                 DeviceCard(
                                   device: device,
-                                  isNew: deviceProvider.newDeviceIds.contains(device.deviceId),
+                                  isNew: deviceProvider.isDeviceNew(device),
                                   onTap: () {
                                     if (device.isActive) {
                                       // Headless refresh before opening device (no UI blocking)

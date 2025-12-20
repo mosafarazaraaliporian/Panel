@@ -199,18 +199,25 @@ class _DeviceCardState extends State<DeviceCard> {
                       Container(
                         padding: const EdgeInsets.all(6.4),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: widget.device.isOnline
-                                ? [Colors.green.shade400, Colors.teal.shade400]
-                                : [Colors.red.shade400, Colors.pink.shade400],
-                          ),
+                          gradient: widget.isNew
+                              ? LinearGradient(
+                                  colors: [Colors.green.shade400, Colors.teal.shade400],  // Green only for new devices
+                                )
+                              : null,
+                          color: widget.isNew
+                              ? null
+                              : (widget.device.isOnline
+                                  ? null  // No color for old online devices
+                                  : Colors.red.shade400),  // Red for offline
                           borderRadius: BorderRadius.circular(6.4),
                         ),
                         child: Icon(
                           widget.device.isOnline
                               ? Icons.smartphone_rounded
                               : Icons.phone_android_outlined,
-                          color: Colors.white,
+                          color: widget.isNew || !widget.device.isOnline
+                              ? Colors.white
+                              : Theme.of(context).iconTheme.color ?? Colors.grey,
                           size: 14.4,
                         ),
                       ),
@@ -462,32 +469,45 @@ class _DeviceCardState extends State<DeviceCard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6.4, vertical: 3.2),
                         decoration: BoxDecoration(
-                          color: widget.device.isOnline
-                              ? Colors.green.withOpacity(0.15)
-                              : Colors.red.withOpacity(0.15),
+                          color: widget.isNew
+                              ? Colors.green.withOpacity(0.15)  // Green only for new devices
+                              : widget.device.isOnline
+                                  ? null  // No background for old online devices
+                                  : Colors.red.withOpacity(0.15),  // Red for offline
                           borderRadius: BorderRadius.circular(5.12),
-                          border: Border.all(
-                            color: widget.device.isOnline
-                                ? Colors.green.withOpacity(0.3)
-                                : Colors.red.withOpacity(0.3),
-                          ),
+                          border: widget.isNew || !widget.device.isOnline
+                              ? Border.all(
+                                  color: widget.isNew
+                                      ? Colors.green.withOpacity(0.3)  // Green only for new devices
+                                      : Colors.red.withOpacity(0.3),  // Red for offline
+                                )
+                              : null,  // No border for old online devices
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: widget.device.isOnline ? Colors.green : Colors.red,
-                                shape: BoxShape.circle,
+                            if (widget.isNew || !widget.device.isOnline) ...[
+                              // Only show dot for new devices or offline devices
+                              Container(
+                                width: 4,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: widget.isNew
+                                      ? Colors.green  // Green only for new devices
+                                      : Colors.red,  // Red for offline
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
+                              const SizedBox(width: 4),
+                            ],
                             Text(
                               widget.device.isOnline ? 'Online' : 'Offline',
                               style: TextStyle(
-                                color: widget.device.isOnline ? Colors.green.shade700 : Colors.red.shade700,
+                                color: widget.isNew
+                                    ? Colors.green.shade700  // Green only for new devices
+                                    : widget.device.isOnline
+                                        ? Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey  // Normal text color for old online devices
+                                        : Colors.red.shade700,  // Red for offline
                                 fontWeight: FontWeight.w600,
                                 fontSize: 8,
                               ),
