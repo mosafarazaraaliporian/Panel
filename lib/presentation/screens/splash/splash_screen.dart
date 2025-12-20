@@ -110,10 +110,15 @@ class _SplashScreenState extends State<SplashScreen>
 
         if (kIsWeb) {
           final hash = getWindowHash();
-          if (hash != null) {
+          if (hash != null && hash.isNotEmpty) {
             // Handle device route (in popup or new tab)
             if (hash.startsWith('#/device/')) {
-              final deviceId = hash.substring('#/device/'.length);
+              // Extract deviceId (remove #/device/ prefix, handle query params if any)
+              var deviceId = hash.substring('#/device/'.length);
+              // Remove query parameters if present
+              if (deviceId.contains('?')) {
+                deviceId = deviceId.split('?').first;
+              }
               if (authProvider.isAuthenticated && deviceId.isNotEmpty) {
                 Navigator.of(context).pushReplacement(
                   PageRouteBuilder(
