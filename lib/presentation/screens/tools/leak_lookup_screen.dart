@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../data/repositories/tools_repository.dart';
+import '../../../core/utils/popup_helper.dart';
 
 class LeakLookupScreen extends StatefulWidget {
   final String? initialQuery;
@@ -56,6 +58,20 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
   void _setInitialQuery() {
     if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
       _queryController.text = widget.initialQuery!;
+    } else if (kIsWeb) {
+      // Try to get query from URL hash
+      final hash = getWindowHash();
+      if (hash != null && hash.startsWith('/leak-lookup')) {
+        try {
+          final uri = Uri.parse('http://example.com$hash');
+          final query = uri.queryParameters['query'];
+          if (query != null && query.isNotEmpty) {
+            _queryController.text = query;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      }
     }
   }
 
@@ -173,10 +189,20 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
     }
   }
 
-  void _copyJsonToClipboard() {
+  Future<void> _copyJsonToClipboard() async {
     final prettyJson = const JsonEncoder.withIndent('  ').convert(_result);
-    Clipboard.setData(ClipboardData(text: prettyJson));
-    _showSuccessSnackBar('Copied to clipboard');
+    if (kIsWeb) {
+      // Use web clipboard API for better compatibility
+      try {
+        await Clipboard.setData(ClipboardData(text: prettyJson));
+        _showSuccessSnackBar('Copied to clipboard');
+      } catch (e) {
+        _showWarningSnackBar('Failed to copy: $e');
+      }
+    } else {
+      Clipboard.setData(ClipboardData(text: prettyJson));
+      _showSuccessSnackBar('Copied to clipboard');
+    }
   }
 
   @override

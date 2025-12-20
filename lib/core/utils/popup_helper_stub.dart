@@ -6,10 +6,10 @@ void openDevicePopup(String deviceId) {
 void openDeviceInNewTab(String deviceId) {
 }
 
-void openLeakLookupPopup() {
+void openLeakLookupPopup({String? query}) {
 }
 
-void openLeakLookupInNewTab() {
+void openLeakLookupInNewTab({String? query}) {
 }
 
 void closePopupWindow() {

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '../../../../data/models/device.dart';
 import '../../../../data/repositories/device_repository.dart';
 import '../../../../core/utils/date_utils.dart' as utils;
+import '../../../../core/utils/popup_helper.dart';
+import '../../../../data/services/storage_service.dart';
 import '../dialogs/edit_settings_dialog.dart';
 import '../dialogs/edit_note_dialog.dart';
 import '../../../widgets/dialogs/call_forwarding_dialog.dart';
@@ -120,11 +123,23 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
   }
 
   void _openLookupActivity(String query) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => LeakLookupScreen(initialQuery: query),
-      ),
-    );
+    if (kIsWeb) {
+      // On web, open in new tab or popup based on settings
+      final storageService = StorageService();
+      final openMode = storageService.getLeakLookupOpenMode();
+      if (openMode == 'tab') {
+        openLeakLookupInNewTab(query: query);
+      } else {
+        openLeakLookupPopup(query: query);
+      }
+    } else {
+      // On mobile, open as full screen page
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => LeakLookupScreen(initialQuery: query),
+        ),
+      );
+    }
   }
 
   Widget _buildLookupAction(String number) {
@@ -256,19 +271,42 @@ class _DeviceInfoTabState extends State<DeviceInfoTab> {
     }
   }
 
-  void _copyToClipboard(String text, String label) {
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$label copied to clipboard'),
-        backgroundColor: const Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6.4),
-        ),
-      ),
-    );
+  Future<void> _copyToClipboard(String text, String label) async {
+    try {
+      if (kIsWeb) {
+        // Use web clipboard API for better compatibility
+        await Clipboard.setData(ClipboardData(text: text));
+      } else {
+        Clipboard.setData(ClipboardData(text: text));
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$label copied to clipboard'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6.4),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy: $e'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6.4),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   String _getUpiPin() {

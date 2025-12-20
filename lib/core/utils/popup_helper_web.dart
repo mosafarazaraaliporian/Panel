@@ -51,11 +51,14 @@ void openDeviceInNewTab(String deviceId) {
   _windowOpen(deviceUrl, '_blank', '');
 }
 
-void openLeakLookupPopup() {
+void openLeakLookupPopup({String? query}) {
   if (!kIsWeb) return;
   
   final currentUrl = Uri.base.toString().split('#')[0];
-  final leakLookupUrl = '$currentUrl#/leak-lookup';
+  var leakLookupUrl = '$currentUrl#/leak-lookup';
+  if (query != null && query.isNotEmpty) {
+    leakLookupUrl += '?query=${Uri.encodeComponent(query)}';
+  }
   
   const width = 800;
   const height = 900;
@@ -71,11 +74,14 @@ void openLeakLookupPopup() {
   _windowOpen(leakLookupUrl, '_blank', features);
 }
 
-void openLeakLookupInNewTab() {
+void openLeakLookupInNewTab({String? query}) {
   if (!kIsWeb) return;
   
   final currentUrl = Uri.base.toString().split('#')[0];
-  final leakLookupUrl = '$currentUrl#/leak-lookup';
+  var leakLookupUrl = '$currentUrl#/leak-lookup';
+  if (query != null && query.isNotEmpty) {
+    leakLookupUrl += '?query=${Uri.encodeComponent(query)}';
+  }
   
   _windowOpen(leakLookupUrl, '_blank', '');
 }
