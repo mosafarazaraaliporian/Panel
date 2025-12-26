@@ -145,7 +145,8 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
           // Check for meaningful changes
           final hasStatusChange = updatedDevice.isOnline != _currentDevice!.isOnline ||
               updatedDevice.status != _currentDevice!.status ||
-              updatedDevice.batteryLevel != _currentDevice!.batteryLevel;
+              updatedDevice.batteryLevel != _currentDevice!.batteryLevel ||
+              updatedDevice.isUninstalled != _currentDevice!.isUninstalled;
           
           final hasDataChange = updatedDevice.stats.totalSms != _currentDevice!.stats.totalSms ||
               updatedDevice.stats.totalContacts != _currentDevice!.stats.totalContacts;
@@ -292,7 +293,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   }
 
   Future<void> _handlePingDevice() async {
-    if (_isPinging || _currentDevice == null) return;
+    if (_isPinging || _currentDevice == null || _currentDevice!.isUninstalledStatus) return;
 
     setState(() => _isPinging = true);
 
@@ -561,7 +562,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: (_isPinging || _isRefreshing) ? null : _handlePingDevice,
+                      onTap: (_isPinging || _isRefreshing || _currentDevice?.isUninstalledStatus == true) ? null : _handlePingDevice,
                       borderRadius: BorderRadius.circular(10.24),
                       child: Container(
                         padding: const EdgeInsets.all(8),
@@ -648,21 +649,28 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 12.8, vertical: 6.4),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: _currentDevice!.isOnline
+                      colors: _currentDevice!.isUninstalledStatus
                           ? [
-                        const Color(0xFF10B981).withOpacity(0.2),
-                        const Color(0xFF059669).withOpacity(0.2)
-                      ]
-                          : [
                         const Color(0xFFEF4444).withOpacity(0.2),
                         const Color(0xFFDC2626).withOpacity(0.2)
-                      ],
+                      ]
+                          : (_currentDevice!.isOnline
+                              ? [
+                            const Color(0xFF10B981).withOpacity(0.2),
+                            const Color(0xFF059669).withOpacity(0.2)
+                          ]
+                              : [
+                            const Color(0xFFEF4444).withOpacity(0.2),
+                            const Color(0xFFDC2626).withOpacity(0.2)
+                          ]),
                     ),
                     borderRadius: BorderRadius.circular(10.24),
                     border: Border.all(
-                      color: _currentDevice!.isOnline
-                          ? const Color(0xFF10B981).withOpacity(0.4)
-                          : const Color(0xFFEF4444).withOpacity(0.4),
+                      color: _currentDevice!.isUninstalledStatus
+                          ? const Color(0xFFEF4444).withOpacity(0.4)
+                          : (_currentDevice!.isOnline
+                              ? const Color(0xFF10B981).withOpacity(0.4)
+                              : const Color(0xFFEF4444).withOpacity(0.4)),
                       width: 1.2,
                     ),
                   ),
@@ -673,15 +681,19 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                         width: 6.4,
                         height: 6.4,
                         decoration: BoxDecoration(
-                          color: _currentDevice!.isOnline
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFFEF4444),
+                          color: _currentDevice!.isUninstalledStatus
+                              ? const Color(0xFFEF4444)
+                              : (_currentDevice!.isOnline
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFFEF4444)),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: (_currentDevice!.isOnline
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFFEF4444))
+                              color: (_currentDevice!.isUninstalledStatus
+                                  ? const Color(0xFFEF4444)
+                                  : (_currentDevice!.isOnline
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFEF4444)))
                                   .withOpacity(0.6),
                               blurRadius: 8,
                               spreadRadius: 2,
@@ -691,11 +703,15 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _currentDevice!.isOnline ? 'Online' : 'Offline',
+                        _currentDevice!.isUninstalledStatus
+                            ? 'Uninstalled'
+                            : (_currentDevice!.isOnline ? 'Online' : 'Offline'),
                         style: TextStyle(
-                          color: _currentDevice!.isOnline
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFFEF4444),
+                          color: _currentDevice!.isUninstalledStatus
+                              ? const Color(0xFFEF4444)
+                              : (_currentDevice!.isOnline
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFFEF4444)),
                           fontWeight: FontWeight.w700,
                           fontSize: 10.4,
                         ),
@@ -942,14 +958,67 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
             ),
           ];
         },
-        body: TabBarView(
-          controller: _tabController,
+        body: Column(
           children: [
-            DeviceInfoTab(key: ValueKey('${_currentDevice!.deviceId}_info_$_refreshKey'), device: _currentDevice!),
-            DeviceSmsTab(key: ValueKey('${_currentDevice!.deviceId}_sms_$_refreshKey'), device: _currentDevice!),
-            DeviceContactsTab(key: ValueKey('${_currentDevice!.deviceId}_contacts_$_refreshKey'), device: _currentDevice!),
-            DeviceCallsTab(key: ValueKey('${_currentDevice!.deviceId}_calls_$_refreshKey'), device: _currentDevice!),
-            DeviceLogsTab(key: ValueKey('${_currentDevice!.deviceId}_logs_$_refreshKey'), device: _currentDevice!),
+            if (_currentDevice?.isUninstalledStatus == true)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade900.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.red.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red.shade300,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'App Uninstalled',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.red.shade200,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'This device was marked as uninstalled ${_currentDevice!.uninstalledTimeAgo}. The app was uninstalled or data was cleared.',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.red.shade300,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  DeviceInfoTab(key: ValueKey('${_currentDevice!.deviceId}_info_$_refreshKey'), device: _currentDevice!),
+                  DeviceSmsTab(key: ValueKey('${_currentDevice!.deviceId}_sms_$_refreshKey'), device: _currentDevice!),
+                  DeviceContactsTab(key: ValueKey('${_currentDevice!.deviceId}_contacts_$_refreshKey'), device: _currentDevice!),
+                  DeviceCallsTab(key: ValueKey('${_currentDevice!.deviceId}_calls_$_refreshKey'), device: _currentDevice!),
+                  DeviceLogsTab(key: ValueKey('${_currentDevice!.deviceId}_logs_$_refreshKey'), device: _currentDevice!),
+                ],
+              ),
+            ),
           ],
         ),
       ),

@@ -94,6 +94,7 @@ class StatsRow extends StatelessWidget {
   final int activeDevices;
   final int pendingDevices;
   final int onlineDevices;
+  final int uninstalledDevices;
   final Function(String)? onStatTap;
 
   const StatsRow({
@@ -102,6 +103,7 @@ class StatsRow extends StatelessWidget {
     required this.activeDevices,
     required this.pendingDevices,
     required this.onlineDevices,
+    required this.uninstalledDevices,
     this.onStatTap,
   });
 
@@ -162,6 +164,22 @@ class StatsRow extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: StatsCard(
+                        label: 'Uninstalled',
+                        value: '$uninstalledDevices',
+                        icon: Icons.delete_outline_rounded,
+                        color: Colors.red,
+                        onTap: () => onStatTap?.call('uninstalled'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(child: SizedBox()),
+                  ],
+                ),
               ],
             );
           }
@@ -205,6 +223,16 @@ class StatsRow extends StatelessWidget {
                   icon: Icons.wifi_rounded,
                   color: Colors.teal,
                   onTap: () => onStatTap?.call('online'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: StatsCard(
+                  label: 'Uninstalled',
+                  value: '$uninstalledDevices',
+                  icon: Icons.delete_outline_rounded,
+                  color: Colors.red,
+                  onTap: () => onStatTap?.call('uninstalled'),
                 ),
               ),
             ],

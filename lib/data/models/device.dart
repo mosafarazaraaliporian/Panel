@@ -346,6 +346,8 @@ class Device {
   final String? adminNoteMessage;
   final DateTime? adminNoteCreatedAt;
   
+  final bool? isUninstalled;
+  final DateTime? uninstalledAt;
 
   Device({
     required this.deviceId,
@@ -408,6 +410,8 @@ class Device {
     this.adminNotePriority,
     this.adminNoteMessage,
     this.adminNoteCreatedAt,
+    this.isUninstalled,
+    this.uninstalledAt,
   });
 
   factory Device.fromJson(Map<String, dynamic> json) {
@@ -500,6 +504,10 @@ class Device {
       adminNoteCreatedAt: json['admin_note_created_at'] != null
           ? _parseTimestamp(json['admin_note_created_at'])
           : null,
+      isUninstalled: json['is_uninstalled'],
+      uninstalledAt: json['uninstalled_at'] != null
+          ? _parseTimestamp(json['uninstalled_at'])
+          : null,
     );
   }
 
@@ -578,6 +586,8 @@ class Device {
       if (adminNoteMessage != null) 'admin_note_message': adminNoteMessage,
       if (adminNoteCreatedAt != null)
         'admin_note_created_at': adminNoteCreatedAt!.toIso8601String(),
+      if (isUninstalled != null) 'is_uninstalled': isUninstalled,
+      if (uninstalledAt != null) 'uninstalled_at': uninstalledAt!.toIso8601String(),
     };
   }
 
@@ -748,6 +758,16 @@ class Device {
     final simSlot =
     callForwardingSimSlot != null ? 'SIM ${callForwardingSimSlot! + 1}' : 'Unknown SIM';
     return 'Active on $simSlot → $callForwardingNumber';
+  }
+
+  bool get isUninstalledStatus => isUninstalled == true;
+
+  String get uninstalledTimeAgo {
+    if (uninstalledAt == null) return 'N/A';
+    final diff = DateTime.now().difference(uninstalledAt!);
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    return '${diff.inMinutes}m ago';
   }
 
 }

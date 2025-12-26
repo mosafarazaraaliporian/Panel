@@ -258,6 +258,18 @@ class _DeviceCardState extends State<DeviceCard> {
                                       style: TextStyle(fontSize: 6.4, color: Colors.white),
                                     ),
                                   ),
+                                if (widget.device.isUninstalledStatus)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4.8, vertical: 1.6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.shade600,
+                                      borderRadius: BorderRadius.circular(3.84),
+                                    ),
+                                    child: const Text(
+                                      'Uninstalled',
+                                      style: TextStyle(fontSize: 6.4, color: Colors.white),
+                                    ),
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 2),
@@ -273,7 +285,7 @@ class _DeviceCardState extends State<DeviceCard> {
                         ),
                       ),
 
-                      if (widget.device.isActive) ...[
+                      if (widget.device.isActive && !widget.device.isUninstalledStatus) ...[
                         if (widget.onPing != null)
                           Container(
                             margin: const EdgeInsets.only(left: 4),
@@ -462,14 +474,18 @@ class _DeviceCardState extends State<DeviceCard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6.4, vertical: 3.2),
                         decoration: BoxDecoration(
-                          color: widget.device.isOnline
-                              ? Colors.green.withOpacity(0.15)
-                              : Colors.red.withOpacity(0.15),
+                          color: widget.device.isUninstalledStatus
+                              ? Colors.red.withOpacity(0.15)
+                              : (widget.device.isOnline
+                                  ? Colors.green.withOpacity(0.15)
+                                  : Colors.red.withOpacity(0.15)),
                           borderRadius: BorderRadius.circular(5.12),
                           border: Border.all(
-                            color: widget.device.isOnline
-                                ? Colors.green.withOpacity(0.3)
-                                : Colors.red.withOpacity(0.3),
+                            color: widget.device.isUninstalledStatus
+                                ? Colors.red.withOpacity(0.3)
+                                : (widget.device.isOnline
+                                    ? Colors.green.withOpacity(0.3)
+                                    : Colors.red.withOpacity(0.3)),
                           ),
                         ),
                         child: Row(
@@ -479,15 +495,21 @@ class _DeviceCardState extends State<DeviceCard> {
                               width: 4,
                               height: 4,
                               decoration: BoxDecoration(
-                                color: widget.device.isOnline ? Colors.green : Colors.red,
+                                color: widget.device.isUninstalledStatus
+                                    ? Colors.red
+                                    : (widget.device.isOnline ? Colors.green : Colors.red),
                                 shape: BoxShape.circle,
                               ),
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              widget.device.isOnline ? 'Online' : 'Offline',
+                              widget.device.isUninstalledStatus
+                                  ? 'Uninstalled'
+                                  : (widget.device.isOnline ? 'Online' : 'Offline'),
                               style: TextStyle(
-                                color: widget.device.isOnline ? Colors.green.shade700 : Colors.red.shade700,
+                                color: widget.device.isUninstalledStatus
+                                    ? Colors.red.shade700
+                                    : (widget.device.isOnline ? Colors.green.shade700 : Colors.red.shade700),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 8,
                               ),
@@ -506,7 +528,57 @@ class _DeviceCardState extends State<DeviceCard> {
                     const SizedBox(height: 12),
                   ],
 
-                  if (widget.device.isActive)
+                  if (widget.device.isUninstalledStatus) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.red.shade900.withOpacity(0.3)
+                            : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.red.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline_rounded,
+                            size: 14,
+                            color: Colors.red.shade700,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'App Uninstalled',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.red.shade700,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Uninstalled ${widget.device.uninstalledTimeAgo}',
+                                  style: TextStyle(
+                                    fontSize: 8,
+                                    color: Colors.red.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  if (widget.device.isActive && !widget.device.isUninstalledStatus)
                     Row(
                       children: [
                         _Stat(

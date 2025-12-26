@@ -1134,6 +1134,7 @@ class _DevicesPageState extends State<_DevicesPage> {
                           activeDevices: deviceProvider.stats?.activeDevices ?? deviceProvider.activeDevices,
                           pendingDevices: deviceProvider.stats?.pendingDevices ?? deviceProvider.pendingDevices,
                           onlineDevices: deviceProvider.stats?.onlineDevices ?? deviceProvider.onlineDevices,
+                          uninstalledDevices: deviceProvider.uninstalledDevices,
                           onStatTap: (filter) {
                             switch (filter) {
                               case 'active':
@@ -1144,6 +1145,9 @@ class _DevicesPageState extends State<_DevicesPage> {
                                 break;
                               case 'online':
                                 deviceProvider.setConnectionFilter(ConnectionFilter.online);
+                                break;
+                              case 'uninstalled':
+                                // TODO: Add filter for uninstalled devices if needed
                                 break;
                             }
                           },
@@ -1475,7 +1479,7 @@ class _DevicesPageState extends State<_DevicesPage> {
                                       );
                                     }
                                   },
-                                  onPing: device.isActive ? () => _handlePingDevice(device.deviceId) : null,
+                                  onPing: device.isActive && !device.isUninstalledStatus ? () => _handlePingDevice(device.deviceId) : null,
                                   isPinging: isPinging,
                                   onNote: device.isActive ? () => _handleNoteDevice(device.deviceId) : null,
                                   isNoting: isNoting,

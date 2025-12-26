@@ -177,6 +177,7 @@ class DeviceProvider extends ChangeNotifier {
   int get activeDevices => _devices.where((d) => d.isActive).length;
   int get pendingDevices => _devices.where((d) => d.isPending).length;
   int get onlineDevices => _devices.where((d) => d.isOnline).length;
+  int get uninstalledDevices => _devices.where((d) => d.isUninstalledStatus).length;
   int get offlineDevices => _devices.where((d) => d.isOffline).length;
   int get devicesWithUpi => _devices.where((d) => d.hasUpi).length;
   int get devicesWithoutUpi => _devices.where((d) => !d.hasUpi).length;
