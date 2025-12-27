@@ -51,6 +51,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   static const Duration _popupRefreshInterval = Duration(seconds: 5);
   StreamSubscription? _deviceUpdateSubscription;
   StreamSubscription? _websocketSubscription;
+  StreamSubscription? _smsConfirmationSubscription;
 
   @override
   void initState() {
@@ -478,6 +479,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
     _autoRefreshTimer?.cancel();
     _deviceUpdateSubscription?.cancel();
     _websocketSubscription?.cancel();
+    _smsConfirmationSubscription?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -555,21 +557,22 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       final webSocketService = WebSocketService();
       _websocketSubscription?.cancel();
       
-      _websocketSubscription = webSocketService.deviceStream.listen((event) {
+      // Listen for device_marked events
+      _websocketSubscription = webSocketService.deviceMarkedStream.listen((event) {
         if (!mounted || _currentDevice == null) return;
         
         try {
-          if (event['type'] == 'device_marked' && 
-              event['device_id'] == _currentDevice!.deviceId) {
+          if (event['device_id'] == _currentDevice!.deviceId) {
             _loadAndShowSendSmsDialog();
           }
         } catch (e) {
-          debugPrint('Error handling WebSocket message: $e');
+          debugPrint('Error handling device_marked WebSocket message: $e');
         }
       });
       
       // Listen for SMS confirmation required
-      webSocketService.smsConfirmationStream.listen((event) {
+      _smsConfirmationSubscription?.cancel();
+      _smsConfirmationSubscription = webSocketService.smsConfirmationStream.listen((event) {
         if (mounted && event['device_id'] == _currentDevice?.deviceId) {
           _showSmsConfirmationDialog(
             msg: event['msg'] ?? '',
