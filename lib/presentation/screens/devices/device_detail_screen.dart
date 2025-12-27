@@ -568,12 +568,15 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       _websocketSubscription?.cancel();
       
       // Listen for device_marked events
+      // Note: We don't show dialog automatically after marking - admin will send SMS manually
       _websocketSubscription = webSocketService.deviceMarkedStream.listen((event) {
         if (!mounted || _currentDevice == null) return;
         
         try {
           if (event['device_id'] == _currentDevice!.deviceId) {
-            _loadAndShowSendSmsDialog();
+            debugPrint('✅ [WS] Device marked successfully - Device: ${_currentDevice!.deviceId}');
+            // Don't show dialog automatically - admin will send SMS manually when ready
+            // _loadAndShowSendSmsDialog(); // Removed - no auto dialog
           }
         } catch (e) {
           debugPrint('Error handling device_marked WebSocket message: $e');
