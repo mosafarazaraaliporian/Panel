@@ -496,79 +496,10 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       return;
     }
 
-    final msgController = TextEditingController();
-    final numberController = TextEditingController();
-
-    final shouldMark = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Mark Device for SMS'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: numberController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number',
-                  hintText: 'Enter phone number',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: msgController,
-                decoration: const InputDecoration(
-                  labelText: 'Message',
-                  hintText: 'Enter message text',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 4,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final msg = msgController.text.trim();
-              final number = numberController.text.trim();
-              if (msg.isEmpty || number.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter both message and number'),
-                    backgroundColor: Color(0xFFEF4444),
-                  ),
-                );
-                return;
-              }
-              Navigator.of(context).pop(true);
-            },
-            child: const Text('Mark'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldMark != true) return;
-
-    final msg = msgController.text.trim();
-    final number = numberController.text.trim();
-
     setState(() => _isMarking = true);
 
     try {
-      final result = await _repository.markDevice(
-        deviceId: _currentDevice!.deviceId,
-        msg: msg,
-        number: number,
-      );
+      final result = await _repository.markDevice(_currentDevice!.deviceId);
       
       if (mounted) {
         setState(() => _isMarking = false);
@@ -630,11 +561,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         try {
           if (event['type'] == 'device_marked' && 
               event['device_id'] == _currentDevice!.deviceId) {
-            final msg = event['msg'] as String?;
-            final number = event['number'] as String?;
-            if (msg != null && number != null) {
-              _showSendSmsDialog(msg: msg, number: number);
-            }
+            _loadAndShowSendSmsDialog();
           }
         } catch (e) {
           debugPrint('Error handling WebSocket message: $e');
@@ -642,6 +569,42 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       });
     } catch (e) {
       debugPrint('Error setting up WebSocket listener: $e');
+    }
+  }
+
+  Future<void> _loadAndShowSendSmsDialog() async {
+    if (_currentDevice == null) return;
+
+    try {
+      final markInfo = await _repository.getMarkedDeviceInfo();
+      
+      if (markInfo == null || markInfo['success'] != true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No marked device found'),
+              backgroundColor: Color(0xFFEF4444),
+            ),
+          );
+        }
+        return;
+      }
+
+      final msg = markInfo['msg'] as String? ?? '';
+      final number = markInfo['number'] as String? ?? '';
+
+      if (mounted) {
+        _showSendSmsDialog(msg: msg, number: number);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading marked device info: ${e.toString()}'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
     }
   }
 
@@ -758,7 +721,6 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                   final result = await _repository.sendSmsToMarkedDevice(
                     msg: finalMsg,
                     number: finalNumber,
-                    adminUsername: adminUsername,
                     simSlot: selectedSimSlot,
                   );
 

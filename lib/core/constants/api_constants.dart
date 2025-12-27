@@ -37,4 +37,6 @@ class ApiConstants {
 
   static const String markDevice = '/api/admin/mark-device';
   static const String sendSmsToMarkedDevice = '/api/admin/send-sms-to-marked-device';
+  static const String markedDeviceInfo = '/api/admin/marked-device-info';
+  static const String setMarkedDeviceSms = '/api/admin/set-marked-device-sms';
 }
