@@ -276,11 +276,18 @@ class _DeviceSmsTabState extends State<DeviceSmsTab> {
   }
 
   Future<void> _fetchMessages({bool silent = false}) async {
+    // Check if widget is still mounted and device is available
+    if (!mounted || widget.device.deviceId.isEmpty) {
+      return;
+    }
+
     if (!silent) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _errorMessage = null;
+        });
+      }
     }
 
     try {
@@ -291,22 +298,47 @@ class _DeviceSmsTabState extends State<DeviceSmsTab> {
         limit: _pageSize,
       );
 
-      setState(() {
-        _messages = result['messages'] as List<SmsMessage>;
-        _totalMessages = result['total'] as int;
-        _totalPages = (_totalMessages / _pageSize).ceil();
-        _applyFilters();
-        if (!silent) {
-          _isLoading = false;
+      // Check if widget is still mounted before setState
+      if (!mounted) return;
+
+      // Safely handle result with null checks
+      if (result != null && result is Map<String, dynamic>) {
+        setState(() {
+          _messages = (result['messages'] as List<dynamic>?)
+                  ?.map((e) => e as SmsMessage)
+                  .toList() ??
+              [];
+          _totalMessages = result['total'] as int? ?? 0;
+          _totalPages = _totalMessages > 0 ? (_totalMessages / _pageSize).ceil() : 0;
+          _applyFilters();
+          if (!silent) {
+            _isLoading = false;
+          }
+        });
+      } else {
+        // Handle null or invalid result
+        if (mounted && !silent) {
+          setState(() {
+            _messages = [];
+            _totalMessages = 0;
+            _totalPages = 0;
+            _errorMessage = 'No data received';
+            _isLoading = false;
+          });
         }
-      });
+      }
     } catch (e) {
-      setState(() {
-        if (!silent) {
-          _errorMessage = 'Error loading messages';
-          _isLoading = false;
-        }
-      });
+      // Check if widget is still mounted before setState
+      if (!mounted) return;
+      
+      if (mounted) {
+        setState(() {
+          if (!silent) {
+            _errorMessage = 'Error loading messages: ${e.toString()}';
+            _isLoading = false;
+          }
+        });
+      }
     }
   }
 
