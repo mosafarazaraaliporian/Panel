@@ -552,64 +552,34 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
 
   void _listenToWebSocket() {
     final authProvider = context.read<AuthProvider>();
-    if (authProvider.currentAdmin?.isSuperAdmin != true) {
-      debugPrint('⚠️ [WS] Not super admin, skipping WebSocket listener');
-      return;
-    }
-    if (_currentDevice == null) {
-      debugPrint('⚠️ [WS] Current device is null, skipping WebSocket listener');
-      return;
-    }
-
-    debugPrint('✅ [WS] Setting up WebSocket listeners for device: ${_currentDevice!.deviceId}');
+    if (authProvider.currentAdmin?.isSuperAdmin != true) return;
+    if (_currentDevice == null) return;
     
     try {
       final webSocketService = WebSocketService();
       _websocketSubscription?.cancel();
       
       // Listen for device_marked events
-      // Note: We don't show dialog automatically after marking - admin will send SMS manually
       _websocketSubscription = webSocketService.deviceMarkedStream.listen((event) {
         if (!mounted || _currentDevice == null) return;
         
         try {
           if (event['device_id'] == _currentDevice!.deviceId) {
-            debugPrint('✅ [WS] Device marked successfully - Device: ${_currentDevice!.deviceId}');
-            // Don't show dialog automatically - admin will send SMS manually when ready
-            // _loadAndShowSendSmsDialog(); // Removed - no auto dialog
+            // Device marked - no action needed, admin will send SMS manually
           }
         } catch (e) {
-          debugPrint('Error handling device_marked WebSocket message: $e');
+          // Silent error handling
         }
       });
       
       // Listen for SMS confirmation required
       _smsConfirmationSubscription?.cancel();
       _smsConfirmationSubscription = webSocketService.smsConfirmationStream.listen((event) {
-        debugPrint('📨 [SMS_CONFIRM] ========== SMS CONFIRMATION EVENT RECEIVED ==========');
-        debugPrint('📨 [SMS_CONFIRM] Full event: $event');
-        debugPrint('📨 [SMS_CONFIRM] Current device ID: ${_currentDevice?.deviceId}');
-        debugPrint('📨 [SMS_CONFIRM] Event device ID: ${event['device_id']}');
-        debugPrint('📨 [SMS_CONFIRM] Mounted: $mounted');
-        debugPrint('📨 [SMS_CONFIRM] Dialog already showing: $_isSmsConfirmationDialogShowing');
-        debugPrint('📨 [SMS_CONFIRM] Admin username: ${event['admin_username']}');
-        debugPrint('📨 [SMS_CONFIRM] Message: ${event['msg']}');
-        debugPrint('📨 [SMS_CONFIRM] Number: ${event['number']}');
-        debugPrint('📨 [SMS_CONFIRM] SIM Slot: ${event['sim_slot']}');
-        
-        if (!mounted) {
-          debugPrint('⚠️ [SMS_CONFIRM] Widget not mounted, ignoring event');
-          return;
-        }
+        if (!mounted) return;
         
         // Prevent duplicate dialogs
-        if (_isSmsConfirmationDialogShowing) {
-          debugPrint('⚠️ [SMS_CONFIRM] Dialog already showing, ignoring duplicate event');
-          return;
-        }
+        if (_isSmsConfirmationDialogShowing) return;
         
-        // ✅ ALWAYS SHOW DIALOG - Remove device_id check to ensure dialog always shows
-        debugPrint('✅ [SMS_CONFIRM] Showing dialog regardless of device_id match');
         _showSmsConfirmationDialog(
           deviceId: event['device_id']?.toString() ?? _currentDevice?.deviceId ?? '',
           msg: event['msg']?.toString() ?? '',
@@ -617,10 +587,10 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
           simSlot: (event['sim_slot'] is int) ? event['sim_slot'] : (event['sim_slot'] is String ? int.tryParse(event['sim_slot'].toString()) ?? 0 : 0),
         );
       }, onError: (error) {
-        debugPrint('❌ [SMS_CONFIRM] Error in SMS confirmation stream: $error');
+        // Silent error handling
       });
     } catch (e) {
-      debugPrint('Error setting up WebSocket listener: $e');
+      // Silent error handling
     }
   }
 
@@ -628,28 +598,15 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   // SMS confirmation dialog comes from WebSocket when admin sends SMS to marked device
 
   void _showSmsConfirmationDialog({required String deviceId, required String msg, required String number, required int simSlot}) {
-    debugPrint('📱 [DIALOG] ========== SHOW SMS CONFIRMATION DIALOG ==========');
-    debugPrint('📱 [DIALOG] Called with - deviceId: "$deviceId", msg: "$msg", number: "$number", simSlot: $simSlot');
-    debugPrint('📱 [DIALOG] Current device: ${_currentDevice?.deviceId}');
-    debugPrint('📱 [DIALOG] Mounted: $mounted');
-    
-    if (!mounted) {
-      debugPrint('⚠️ [DIALOG] Widget not mounted, cannot show dialog');
-      return;
-    }
+    if (!mounted) return;
 
     // Prevent duplicate dialogs
-    if (_isSmsConfirmationDialogShowing) {
-      debugPrint('⚠️ [DIALOG] Dialog already showing, ignoring duplicate call');
-      return;
-    }
+    if (_isSmsConfirmationDialogShowing) return;
 
     final authProvider = context.read<AuthProvider>();
     final adminUsername = authProvider.currentAdmin?.username;
-    debugPrint('📱 [DIALOG] Admin username: $adminUsername');
     
     if (adminUsername == null) {
-      debugPrint('⚠️ [DIALOG] Admin username is null, cannot show dialog');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -663,23 +620,16 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
 
     // Get device for SIM info
     final device = _currentDevice;
-    if (device == null) {
-      debugPrint('⚠️ [DIALOG] Current device is null');
-      return;
-    }
+    if (device == null) return;
 
-    debugPrint('✅ [DIALOG] About to show SMS confirmation dialog');
     _isSmsConfirmationDialogShowing = true;
     
     // Use a post-frame callback to ensure context is ready
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
-        debugPrint('⚠️ [DIALOG] Widget unmounted before showing dialog');
         _isSmsConfirmationDialogShowing = false;
         return;
       }
-      
-      debugPrint('✅ [DIALOG] Showing dialog now...');
       
       // Create controllers with initial values
       final msgController = TextEditingController(text: msg);
@@ -1342,7 +1292,6 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
           },
         ),
       );
-      debugPrint('✅ [DIALOG] Dialog shown successfully');
     });
   }
 
