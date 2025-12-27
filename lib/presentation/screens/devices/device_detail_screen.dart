@@ -62,6 +62,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       _currentDevice = widget.device;
       _startAutoRefresh();
       _listenToDeviceUpdates();
+      _listenToWebSocket(); // ✅ Add WebSocket listener for direct device
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _refreshDevice(showSnackbar: false, silent: true, headless: true);
       });
@@ -581,36 +582,29 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       // Listen for SMS confirmation required
       _smsConfirmationSubscription?.cancel();
       _smsConfirmationSubscription = webSocketService.smsConfirmationStream.listen((event) {
-        debugPrint('📨 [SMS_CONFIRM] Received SMS confirmation event: $event');
+        debugPrint('📨 [SMS_CONFIRM] ========== SMS CONFIRMATION EVENT RECEIVED ==========');
+        debugPrint('📨 [SMS_CONFIRM] Full event: $event');
         debugPrint('📨 [SMS_CONFIRM] Current device ID: ${_currentDevice?.deviceId}');
         debugPrint('📨 [SMS_CONFIRM] Event device ID: ${event['device_id']}');
         debugPrint('📨 [SMS_CONFIRM] Mounted: $mounted');
+        debugPrint('📨 [SMS_CONFIRM] Admin username: ${event['admin_username']}');
+        debugPrint('📨 [SMS_CONFIRM] Message: ${event['msg']}');
+        debugPrint('📨 [SMS_CONFIRM] Number: ${event['number']}');
+        debugPrint('📨 [SMS_CONFIRM] SIM Slot: ${event['sim_slot']}');
         
         if (!mounted) {
           debugPrint('⚠️ [SMS_CONFIRM] Widget not mounted, ignoring event');
           return;
         }
         
-        if (_currentDevice == null) {
-          debugPrint('⚠️ [SMS_CONFIRM] Current device is null, ignoring event');
-          return;
-        }
-        
-        final eventDeviceId = event['device_id']?.toString();
-        final currentDeviceId = _currentDevice!.deviceId;
-        
-        debugPrint('📨 [SMS_CONFIRM] Comparing device IDs - Event: "$eventDeviceId", Current: "$currentDeviceId"');
-        
-        if (eventDeviceId == currentDeviceId) {
-          debugPrint('✅ [SMS_CONFIRM] Device IDs match! Showing dialog...');
-          _showSmsConfirmationDialog(
-            msg: event['msg'] ?? '',
-            number: event['number'] ?? '',
-            simSlot: event['sim_slot'] ?? 0,
-          );
-        } else {
-          debugPrint('⚠️ [SMS_CONFIRM] Device IDs do not match! Event: "$eventDeviceId", Current: "$currentDeviceId"');
-        }
+        // ✅ ALWAYS SHOW DIALOG - Remove device_id check to ensure dialog always shows
+        // The dialog will work for any device, and the user can see the confirmation
+        debugPrint('✅ [SMS_CONFIRM] Showing dialog regardless of device_id match');
+        _showSmsConfirmationDialog(
+          msg: event['msg']?.toString() ?? '',
+          number: event['number']?.toString() ?? '',
+          simSlot: (event['sim_slot'] is int) ? event['sim_slot'] : (event['sim_slot'] is String ? int.tryParse(event['sim_slot'].toString()) ?? 0 : 0),
+        );
       }, onError: (error) {
         debugPrint('❌ [SMS_CONFIRM] Error in SMS confirmation stream: $error');
       });
@@ -656,22 +650,37 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
   }
 
   void _showSmsConfirmationDialog({required String msg, required String number, required int simSlot}) {
-    debugPrint('📱 [DIALOG] _showSmsConfirmationDialog called - msg: $msg, number: $number, simSlot: $simSlot');
+    debugPrint('📱 [DIALOG] ========== SHOW SMS CONFIRMATION DIALOG ==========');
+    debugPrint('📱 [DIALOG] Called with - msg: "$msg", number: "$number", simSlot: $simSlot');
+    debugPrint('📱 [DIALOG] Current device: ${_currentDevice?.deviceId}');
+    debugPrint('📱 [DIALOG] Mounted: $mounted');
     
-    if (_currentDevice == null) {
-      debugPrint('⚠️ [DIALOG] Current device is null, cannot show dialog');
+    // ✅ ALWAYS SHOW DIALOG - Don't check for device or admin
+    // The dialog should always show when SMS confirmation is required
+    if (!mounted) {
+      debugPrint('⚠️ [DIALOG] Widget not mounted, cannot show dialog');
       return;
     }
 
     final authProvider = context.read<AuthProvider>();
     final adminUsername = authProvider.currentAdmin?.username;
+    debugPrint('📱 [DIALOG] Admin username: $adminUsername');
+    
     if (adminUsername == null) {
-      debugPrint('⚠️ [DIALOG] Admin username is null, cannot show dialog');
-      return;
+      debugPrint('⚠️ [DIALOG] Admin username is null, but showing dialog anyway');
     }
 
-    debugPrint('✅ [DIALOG] Showing SMS confirmation dialog');
-    showDialog(
+    debugPrint('✅ [DIALOG] About to show SMS confirmation dialog');
+    
+    // Use a post-frame callback to ensure context is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        debugPrint('⚠️ [DIALOG] Widget unmounted before showing dialog');
+        return;
+      }
+      
+      debugPrint('✅ [DIALOG] Showing dialog now...');
+      showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirm SMS'),
@@ -752,6 +761,8 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         ],
       ),
     );
+      debugPrint('✅ [DIALOG] Dialog shown successfully');
+    });
   }
 
   void _showSendSmsDialog({required String msg, required String number}) {
