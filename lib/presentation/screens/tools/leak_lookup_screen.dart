@@ -237,6 +237,7 @@ class _LeakLookupScreenState extends State<LeakLookupScreen>
             ],
           ),
         ),
+        ),
       ),
     );
   }
