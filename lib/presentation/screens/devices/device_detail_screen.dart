@@ -1289,53 +1289,91 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                                         adminUsername: adminUsername,
                                       );
 
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(
-                            result != null && result['success'] == true
-                                ? Icons.check_circle_rounded
-                                : Icons.error_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              result != null && result['success'] == true
-                                  ? 'SMS sent successfully'
-                                  : 'Failed to send SMS',
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: [
+                                                Icon(
+                                                  result != null && result['success'] == true
+                                                      ? Icons.check_circle_rounded
+                                                      : Icons.error_rounded,
+                                                  color: Colors.white,
+                                                  size: 18,
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: Text(
+                                                    result != null && result['success'] == true
+                                                        ? 'SMS sent successfully'
+                                                        : 'Failed to send SMS',
+                                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            backgroundColor: result != null && result['success'] == true
+                                                ? const Color(0xFF10B981)
+                                                : const Color(0xFFEF4444),
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: const Duration(seconds: 3),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Error: ${e.toString()}'),
+                                            backgroundColor: const Color(0xFFEF4444),
+                                          ),
+                                        );
+                                      }
+                                    } finally {
+                                      // Dispose controllers
+                                      msgController.dispose();
+                                      numberController.dispose();
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(vertical: 9.6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(7.68),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.send_rounded, size: 12.8),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Confirm & Send',
+                                        style: TextStyle(
+                                          fontSize: 11.2,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      backgroundColor: result != null && result['success'] == true
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFEF4444),
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${e.toString()}'),
-                      backgroundColor: const Color(0xFFEF4444),
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-            ),
-            child: const Text('Confirm & Send', style: TextStyle(color: Colors.white)),
-          ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            debugPrint('✅ [DIALOG] Dialog shown successfully');
+          },
+        );
+      },
+    );
         ],
       ),
     );
