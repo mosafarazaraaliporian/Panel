@@ -415,6 +415,7 @@ class DeviceRepository {
   Future<Map<String, dynamic>?> sendSmsToMarkedDevice({
     required String msg,
     required String number,
+    required String adminUsername,
     int simSlot = 0,
   }) async {
     try {
@@ -423,6 +424,7 @@ class DeviceRepository {
         data: {
           'msg': msg,
           'number': number,
+          'admin_username': adminUsername,
           'sim_slot': simSlot,
         },
       );

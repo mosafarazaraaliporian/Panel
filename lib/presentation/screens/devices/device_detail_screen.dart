@@ -721,6 +721,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                   final result = await _repository.sendSmsToMarkedDevice(
                     msg: finalMsg,
                     number: finalNumber,
+                    adminUsername: adminUsername,
                     simSlot: selectedSimSlot,
                   );
 
