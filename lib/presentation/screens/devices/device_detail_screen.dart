@@ -977,11 +977,15 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
       
       // Listen for SMS sent via mark events
       webSocketService.smsSentViaMarkStream.listen((event) {
-        if (!mounted || _currentDevice == null) return;
+        if (!mounted) return;
         
         try {
           final deviceId = event['device_id'];
-          if (deviceId == _currentDevice!.deviceId) {
+          final adminUsername = event['admin_username'];
+          final currentAdmin = authProvider.currentAdmin?.username;
+          
+          // Only show notification if it's for the current admin
+          if (currentAdmin != null && adminUsername == currentAdmin) {
             final deviceName = event['device_name'] ?? deviceId;
             final simSlot = event['sim_slot'] ?? 0;
             
