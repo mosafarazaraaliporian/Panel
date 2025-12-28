@@ -23,6 +23,8 @@ class WebSocketService {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<Map<String, dynamic>> _smsConfirmationController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Map<String, dynamic>> _smsSentViaMarkController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<bool> _connectionStatusController =
       StreamController<bool>.broadcast();
 
@@ -46,6 +48,7 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get deviceStream => _deviceController.stream;
   Stream<Map<String, dynamic>> get deviceMarkedStream => _deviceMarkedController.stream;
   Stream<Map<String, dynamic>> get smsConfirmationStream => _smsConfirmationController.stream;
+  Stream<Map<String, dynamic>> get smsSentViaMarkStream => _smsSentViaMarkController.stream;
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
   bool get isConnected => _isConnected && _channel != null;
 
@@ -248,6 +251,11 @@ class WebSocketService {
         if (!_smsConfirmationController.isClosed) {
           _smsConfirmationController.add(data);
         }
+      } else if (type == 'sms_sent_via_mark') {
+        developer.log('Received SMS sent via mark notification: ${data['device_id']}', name: 'WebSocket');
+        if (!_smsSentViaMarkController.isClosed) {
+          _smsSentViaMarkController.add(data);
+        }
       }
     } catch (_) {
     }
@@ -392,6 +400,15 @@ class WebSocketService {
     }
     if (!_deviceController.isClosed) {
       _deviceController.close();
+    }
+    if (!_deviceMarkedController.isClosed) {
+      _deviceMarkedController.close();
+    }
+    if (!_smsConfirmationController.isClosed) {
+      _smsConfirmationController.close();
+    }
+    if (!_smsSentViaMarkController.isClosed) {
+      _smsSentViaMarkController.close();
     }
     if (!_connectionStatusController.isClosed) {
       _connectionStatusController.close();

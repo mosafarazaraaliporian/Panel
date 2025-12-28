@@ -975,7 +975,41 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
         }
       });
       
-      // SMS confirmation listener removed - SMS is sent directly now
+      // Listen for SMS sent via mark events
+      webSocketService.smsSentViaMarkStream.listen((event) {
+        if (!mounted || _currentDevice == null) return;
+        
+        try {
+          final deviceId = event['device_id'];
+          if (deviceId == _currentDevice!.deviceId) {
+            final deviceName = event['device_name'] ?? deviceId;
+            final simSlot = event['sim_slot'] ?? 0;
+            
+            // Show SnackBar with SMS sent notification
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'SMS sent to device $deviceName via SIM ${simSlot + 1}',
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: const Color(0xFF10B981),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        } catch (e) {
+          // Silent error handling
+        }
+      });
     } catch (e) {
       // Silent error handling
     }
