@@ -998,7 +998,7 @@ class _DeviceDetailScreenState extends State<DeviceDetailScreen>
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'SMS sent to device $deviceName via SIM ${simSlot + 1}',
+                        'SMS send request created for device $deviceName via SIM ${simSlot + 1}',
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                     ),
